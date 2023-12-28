@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Execute Command</title>
+    <style>
+        #outputContainer {
+            width: 800px;
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+	<h1>模型量化转换工具</h1>
+	<form action="/" enctype='multipart/form-data' method='POST'>
+		<select id="model_name" name="model_name">
+			<option value="01_mobilenet">mobilenetv1</option>
+			<option value="04_mobilenet_onnx">mobilenetv2</option>
+			<option value="03_resnet18">resnet18</option>
+			<option value="02_googlenet">googlenet</option>
+			<option value="05_efficientnet_lite0_onnx">efficientnet-lite0</option>
+			<option value="06_efficientnet_lite1_onnx">efficientnet-lite1</option>
+			<option value="07_efficientnet_lite2_onnx">efficientnet-lite2</option>
+			<option value="08_efficientnet_lite3_onnx">efficientnet-lite3</option>
+			<option value="09_efficientnet_lite4_onnx">efficientnet-lite4</option>
+			<option value="01_yolov2_darknet19">yolov2_darknet19</option>
+			<option value="02_yolov3_darknet53">yolov3_darknet53</option>
+			<option value="03_yolov5s">yolov5s-2.0</option>
+			<option value="04_ssd_mobilenetv1">mobilenetv1_ssd</option>
+			<option value="05_efficientdetd0">efficientdetd0</option>
+			<option value="06_centernet_resnet50">centernet_resnet50</option>
+			<option value="07_fcos_efficientnetb0">fcos_efficientnetb0</option>
+			<option value="01_unet_mobilenet">unet_mobilenet</option>
+			<option value="02_deeplabv3plus_efficientnetb0">deeplabv3plus_efficientnetb0</option>
+			<option value="03_fastscnn_efficientnetb0">fastscnn_efficientnetb0</option>
+		</select>
+		<br>
+		<select id="model_type" name="model_type" onchange ="updateModelFileSelectState()">
+			<option value="onnx">onnx</option>
+			<option value="caffe">caffe</option>
+		</select>
+		<br>
+		<label for="profile_pic">选择要上传的onnx文件</label>
+		<input type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange ="updateButtonState()"/>
+		<br>
+		<label for="profile_pic">选择要上传的prototxt文件</label>
+		<input type="file" id="prototxt_file" name="prototxt_file" accept=".prototxt" onchange ="updateButtonState()" disabled/>
+		<br>
+		<label for="profile_pic">选择要上传的caffemodel文件</label>
+		<input type="file" id="caffemodel_file" name="caffemodel_file" accept=".caffemodel" onchange ="updateButtonState()" disabled/>
+		<br>
+		<label for="profile_pic">选择要上传的配置文件</label>
+		<input type="file" id="config_file" name="config_file" accept=".yaml" onchange ="updateButtonState()"/>
+		<br>
+		<label for="profile_pic">选择要上传的图片文件</label>
+		<input type="file" id="image_file" name="image_file" webkitdirectory onchange ="updateButtonState()"/>
+		<br>
+		<button type="submit" id="upload_button" disabled>上传文件</button>
+	</form>
+    {% with messages = get_flashed_messages() %}
+         {% if messages %}
+               {% for message in messages %}
+                    <p>{{ message }}</p>
+               {% endfor %}
+         {% endif %}
+    {% endwith %}
+	<p>{{ check_log }}</p>
+
+    <button onclick="performTask('/check')">检查模型</button>
+    <button onclick="performTask('/preprocess')">准备校准数据</button>
+	<button onclick="performTask('/build')">转换模型</button>
+
+    <div id="result-container"></div>
+
+	<script>
+        function updateModelFileSelectState() {
+			var selectedValue = document.getElementById("model_type").value;
+			var onnx_file_input = document.getElementById('onnx_file');
+			var prototxt_file_input = document.getElementById('prototxt_file');
+			var caffemodel_file_input = document.getElementById('caffemodel_file');
+			if(selectedValue == "onnx"){
+				onnx_file_input.disabled = false;
+				prototxt_file_input.disabled = true;
+				caffemodel_file_input.disabled = true;
+			} else {
+				prototxt_file_input.disabled = false;
+				caffemodel_file_input.disabled = false;
+				onnx_file_input.disabled = true;
+			}
+        }
+    </script>
+	
+
+    <script>
+        function performTask(route) {
+            // 使用JavaScript的Fetch API进行异步请求
+            fetch(route, {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 将结果显示在页面上
+                document.getElementById('result-container').innerText = data.result;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+
+	<script>
+        function updateButtonState() {
+			var onnx_file_input = document.getElementById('onnx_file');
+			var prototxt_file_input = document.getElementById('prototxt_file');
+			var caffemodel_file_input = document.getElementById('caffemodel_file');
+			var config_file_input = document.getElementById('config_file');
+			var image_file_input = document.getElementById('image_file');
+			var uploadButton = document.getElementById('upload_button');
+
+            // 如果文件输入框有选择文件，则启用按钮；否则禁用按钮
+            uploadButton.disabled = !((onnx_file_input.files.length || (prototxt_file_input && caffemodel_file_input))&& config_file_input.files.length && image_file_input.files.length);
+			// uploadButton.disabled = !model_file_input.files.length
+        }
+    </script>
+	<button onclick="downloadBinModel()">下载bin模型</button>
+	<button onclick="downloadAllModel()">下载所有模型</button>
+    <script>
+        function downloadBinModel() {
+            // 向 Flask 路由发送 GET 请求以触发文件下载
+            window.location.href = '/download_bin_model';
+        }
+    </script>
+    <script>
+        function downloadAllModel() {
+            // 向 Flask 路由发送 GET 请求以触发文件下载
+            window.location.href = '/download_all_model';
+        }
+    </script>
+	
+    <div id="outputContainer">
+        <pre id="output"></pre>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        socket.on('output', function(data) {
+            document.getElementById('output').textContent += data;
+        });
+		socket.on('clear_output', function() {
+        document.getElementById('output').textContent = '';
+    	});
+    </script>
+
+</body>
+</html>
+
