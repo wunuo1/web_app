@@ -16,34 +16,55 @@
 </head>
 <body>
 	<h1>模型量化转换工具</h1>
-	<form action="/" enctype='multipart/form-data' method='POST'>
-		<select id="model_name" name="model_name">
-			<option value="01_mobilenet">mobilenetv1</option>
-			<option value="04_mobilenet_onnx">mobilenetv2</option>
-			<option value="03_resnet18">resnet18</option>
-			<option value="02_googlenet">googlenet</option>
-			<option value="05_efficientnet_lite0_onnx">efficientnet-lite0</option>
-			<option value="06_efficientnet_lite1_onnx">efficientnet-lite1</option>
-			<option value="07_efficientnet_lite2_onnx">efficientnet-lite2</option>
-			<option value="08_efficientnet_lite3_onnx">efficientnet-lite3</option>
-			<option value="09_efficientnet_lite4_onnx">efficientnet-lite4</option>
-			<option value="01_yolov2_darknet19">yolov2_darknet19</option>
-			<option value="02_yolov3_darknet53">yolov3_darknet53</option>
-			<option value="03_yolov5s">yolov5s-2.0</option>
-			<option value="04_ssd_mobilenetv1">mobilenetv1_ssd</option>
-			<option value="05_efficientdetd0">efficientdetd0</option>
-			<option value="06_centernet_resnet50">centernet_resnet50</option>
-			<option value="07_fcos_efficientnetb0">fcos_efficientnetb0</option>
-			<option value="01_unet_mobilenet">unet_mobilenet</option>
-			<option value="02_deeplabv3plus_efficientnetb0">deeplabv3plus_efficientnetb0</option>
-			<option value="03_fastscnn_efficientnetb0">fastscnn_efficientnetb0</option>
+	<select id="model_name" name="model_name" onchange="updateParameter()">
+		<option value="01_mobilenet">mobilenetv1</option>
+		<option value="04_mobilenet_onnx">mobilenetv2</option>
+		<option value="resnet18">resnet18</option>
+		<option value="googlenet">googlenet</option>
+		<option value="efficientnet_lite0_onnx">efficientnet-lite0</option>
+		<option value="efficientnet_lite1_onnx">efficientnet-lite1</option>
+		<option value="efficientnet_lite2_onnx">efficientnet-lite2</option>
+		<option value="efficientnet_lite3_onnx">efficientnet-lite3</option>
+		<option value="efficientnet_lite4_onnx">efficientnet-lite4</option>
+		<option value="yolov2_darknet19">yolov2_darknet19</option>
+		<option value="yolov3_darknet53">yolov3_darknet53</option>
+		<option value="yolov5s">yolov5s-2.0</option>
+		<option value="ssd_mobilenetv1">mobilenetv1_ssd</option>
+		<option value="efficientdetd0">efficientdetd0</option>
+		<option value="centernet_resnet50">centernet_resnet50</option>
+		<option value="fcos_efficientnetb0">fcos_efficientnetb0</option>
+		<option value="unet_mobilenet">unet_mobilenet</option>
+		<option value="deeplabv3plus_efficientnetb0">deeplabv3plus_efficientnetb0</option>
+		<option value="fastscnn_efficientnetb0">fastscnn_efficientnetb0</option>
+	</select>
+	<br>
+	<select id="has_model" name="has_model" onchange="trainState()">
+		<option value="true">已有模型</option>
+		<option value="false">没有模型</option>
+	</select>
+	<br>
+	<form>
+		<label for="dimensionType">选择或输入图像尺寸：</label>
+		<select id="dimensionType" onchange="handleDimensionTypeChange();updateParameter()" >
+			<option value="224x224">224x224</option>
+			<option value="672x672">672x672</option>
+			<option value="custom">自定义</option>
 		</select>
-		<br>
-		<select id="model_type" name="model_type" onchange ="updateModelFileSelectState()">
-			<option value="onnx">onnx</option>
-			<option value="caffe">caffe</option>
-		</select>
-		<br>
+		<div id="customDimensions" style="display:none;">
+			<label for="customWidth">宽度：</label>
+			<input type="number" id="customWidth" placeholder="宽度" onchange="updateParameter()">
+			
+			<label for="customHeight">高度：</label>
+			<input type="number" id="customHeight" placeholder="高度" onchange="updateParameter()">
+		</div>
+	</form>
+	<br>
+	<select id="model_type" name="model_type" onchange ="updateModelFileSelectState();updateParameter()">
+		<option value="onnx">onnx</option>
+		<option value="caffe">caffe</option>
+	</select>
+	<br>
+	<form id="uploadForm" enctype='multipart/form-data' method='POST'>
 		<label for="profile_pic">选择要上传的onnx文件</label>
 		<input type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange ="updateButtonState()"/>
 		<br>
@@ -59,8 +80,35 @@
 		<label for="profile_pic">选择要上传的图片文件</label>
 		<input type="file" id="image_file" name="image_file" webkitdirectory onchange ="updateButtonState()"/>
 		<br>
-		<button type="submit" id="upload_button" disabled>上传文件</button>
+		<input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchan="updateButtonState()" disabled>
 	</form>
+
+	<script>
+		function uploadFile() {
+		  var form = document.getElementById('uploadForm');
+		  var formData = new FormData(form);
+	
+		  var xhr = new XMLHttpRequest();
+		  xhr.open('POST', '/upload', true);
+	
+		  xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
+			  if (xhr.status === 200) {
+				// 处理上传成功的情况
+				var response = JSON.parse(xhr.responseText);
+				document.getElementById('result').innerHTML = 'File uploaded successfully: ' + response.filename;
+			  } else {
+				// 处理上传失败的情况
+				var response = JSON.parse(xhr.responseText);
+				document.getElementById('result').innerHTML = 'Upload failed: ' + response.message;
+			  }
+			}
+		  };
+	
+		  xhr.send(formData);
+		}
+	</script>
+
     {% with messages = get_flashed_messages() %}
          {% if messages %}
                {% for message in messages %}
@@ -69,12 +117,62 @@
          {% endif %}
     {% endwith %}
 	<p>{{ check_log }}</p>
+	
+	<button id = "annotation" onclick="redirectToAnotherPage()" disabled onclick="trainState()">数据标注</button>
+	<button id = "train" onclick="performTask('/train')" disabled onclick="trainState()">模型训练</button>
+	<button id = "pt2onnx" onclick="performTask('/export')" disabled onclick="trainState()">转换为onnx模型</button>
+	<br>
+	<button onclick="performTask('/convert')">一键转换</button>
 
-    <button onclick="performTask('/check')">检查模型</button>
-    <button onclick="performTask('/preprocess')">准备校准数据</button>
-	<button onclick="performTask('/build')">转换模型</button>
 
     <div id="result-container"></div>
+
+	<script>
+        function updateParameter() {
+			var dimensionType = document.getElementById('dimensionType').value;
+			var customWidth = document.getElementById('customWidth').value;
+			var customHeight = document.getElementById('customHeight').value;
+			var model_name = document.getElementById('model_name').value;
+			var model_type = document.getElementById('model_type').value;
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', '/update_parameter', true);
+			xhr.setRequestHeader('Content-Type', 'application/json');
+			var data = {
+				dimensionType: dimensionType,
+				model_name: model_name,
+				customWidth: customWidth,
+				customHeight: customHeight,
+				model_type: model_type
+			};
+			var jsonData = JSON.stringify(data);
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState === 4 && xhr.status === 200) {
+					console.log('Backend parameter updated successfully.');
+				}
+			};
+			xhr.send(jsonData);
+        }
+    </script>
+
+	<script>
+		function trainState() {
+			var has_model = document.getElementById('has_model').value;
+			var annotation = document.getElementById('annotation');
+			var train = document.getElementById('train');
+			var pt2onnx = document.getElementById('pt2onnx');
+			if(has_model == "true") {
+				annotation.disabled = true;
+				train.disabled = true;
+				pt2onnx.disabled = true;
+			} else {
+				annotation.disabled = false;
+				train.disabled = false;
+				pt2onnx.disabled = false;
+			}
+		}
+	</script>
+
+
 
 	<script>
         function updateModelFileSelectState() {
@@ -93,7 +191,20 @@
 			}
         }
     </script>
-	
+
+	<script>
+		function handleDimensionTypeChange() {
+			var dimensionType = document.getElementById('dimensionType').value;
+			var customDimensionsDiv = document.getElementById('customDimensions');
+		
+			// 如果用户选择了 "自定义"，显示自定义输入框，否则隐藏
+			if (dimensionType == 'custom') {
+				customDimensionsDiv.style.display = 'block';
+			} else {
+				customDimensionsDiv.style.display = 'none';
+			}
+		}
+	</script>
 
     <script>
         function performTask(route) {
@@ -126,6 +237,7 @@
     </script>
 	<button onclick="downloadBinModel()">下载bin模型</button>
 	<button onclick="downloadAllModel()">下载所有模型</button>
+
     <script>
         function downloadBinModel() {
             // 向 Flask 路由发送 GET 请求以触发文件下载
@@ -138,7 +250,16 @@
             window.location.href = '/download_all_model';
         }
     </script>
+	<script>
+		function redirectToAnotherPage() {
+			// 在这里设置跳转的目标页面的 URL
+			window.open("http://localhost:8080", '_blank');
+			// var targetPageUrl = "http://localhost:8080";
 	
+			// // 使用 JavaScript 跳转到目标页面
+			// window.location.href = targetPageUrl;
+		}
+	</script>
     <div id="outputContainer">
         <pre id="output"></pre>
     </div>
