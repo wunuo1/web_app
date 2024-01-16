@@ -21,31 +21,22 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-def calibration_transforms(args.model):
+def calibration_transforms(args):
     if args.model == "resnet18":
-        transforms = Resnet18DataTransforms(args.width,args.height,args.mean,args.stddev)
+        transforms = Resnet18DataTransforms(args.width,args.height,args.mean,args.stddev,args.format)
     return transforms.calibration_transforms()
 
 
 def get_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Train classifier.')
-    parser.add_argument(
-        '--dataset', '-d', type=str, required=True, help='Root directory of dataset'
-    )
-    parser.add_argument(
-        '--outdir', '-o', type=str, default='/open_explorer/web_app/temporary/calibration_data/', help='Output directory'
-    )
-    parser.add_argument(
-        '--model', '-m', type=str, required=True, help='Model type'
-    )
-    parser.add_argument(
-        '--width', '-w', type=int, default=224, help='Image width'
-    )
-    parser.add_argument(
-        '--height', '-h', type=int, default=224, help='Image height'
-    )
-    parser.add_argument('--mean', '-n' , nargs=3, type=float, default=(0.485, 0.456, 0.406), help='Mean')
-    parser.add_argument('--stddev', '-s' , nargs=3, type=float, default=(0.229, 0.224, 0.225) ,help='Stddev')
+    parser = argparse.ArgumentParser(description='Generate calibration dataset for conversion')
+    parser.add_argument('--dataset', type=str, required=True, help='Root directory of dataset')
+    parser.add_argument('--outdir', type=str, default='/open_explorer/web_app/temporary/calibration_data/', help='Output directory')
+    parser.add_argument('--model', type=str, required=True, help='Model type')
+    parser.add_argument('--width', type=int, default=224, help='Image width')
+    parser.add_argument('--height', type=int, default=224, help='Image height')
+    parser.add_argument('--format', type=str, default="rgb", help='Image format')
+    parser.add_argument('--mean', nargs=3, type=float, default=(0.485, 0.456, 0.406), help='Mean')
+    parser.add_argument('--stddev', nargs=3, type=float, default=(0.229, 0.224, 0.225) ,help='Stddev')
     args = parser.parse_args()
     return args
 
@@ -59,8 +50,11 @@ def main(args):
         os.makedirs(args.outdir)
     # 保存校准数据
     for i in range(len(dataset)):
+        if i >= 100:
+            break
         img, label = dataset[i]
-        img.squeeze().numpy().tofile(args.outdir + '/' + str(i) + "_.rgb")
+        img.squeeze().numpy().tofile(args.outdir + '/' + str(i) + "_." + args.format)
+        print(args.outdir + '/' + str(i) + "_." + args.format,flush=True)
       
 
 if __name__ == '__main__':

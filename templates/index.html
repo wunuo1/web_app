@@ -12,14 +12,17 @@
             border: 1px solid #ccc;
             padding: 10px;
         }
+		.model-config {
+      		display: none; /* 初始状态设置为隐藏 */
+    	}
     </style>
 </head>
 <body>
 	<h1>模型量化转换工具</h1>
-	<select id="model_name" name="model_name" onchange="updateParameter()">
+	<select id="model_name" name="model_name" onchange="updateParameter();updateConfig()">
+		<option value="resnet18">resnet18</option>
 		<option value="01_mobilenet">mobilenetv1</option>
 		<option value="04_mobilenet_onnx">mobilenetv2</option>
-		<option value="resnet18">resnet18</option>
 		<option value="googlenet">googlenet</option>
 		<option value="efficientnet_lite0_onnx">efficientnet-lite0</option>
 		<option value="efficientnet_lite1_onnx">efficientnet-lite1</option>
@@ -38,13 +41,18 @@
 		<option value="fastscnn_efficientnetb0">fastscnn_efficientnetb0</option>
 	</select>
 	<br>
-	<select id="has_model" name="has_model" onchange="trainState()">
+	<select id="has_model" name="has_model" onchange="trainStateChange();updateParameter();converConfigStateChange()">
 		<option value="true">已有模型</option>
 		<option value="false">没有模型</option>
 	</select>
+	<!-- <br>
+	<select id="has_dataset" name="has_dataset" onchange = "updateParameter()">
+		<option value="false">没有数据集</option>
+		<option value="true">已有数据集</option>
+	</select> -->
 	<br>
 	<form>
-		<label for="dimensionType">选择或输入图像尺寸：</label>
+		<label for="dimensionType">选择或输入模型尺寸</label>
 		<select id="dimensionType" onchange="handleDimensionTypeChange();updateParameter()" >
 			<option value="224x224">224x224</option>
 			<option value="672x672">672x672</option>
@@ -59,35 +67,100 @@
 		</div>
 	</form>
 	<br>
-	<select id="model_type" name="model_type" onchange ="updateModelFileSelectState();updateParameter()">
-		<option value="onnx">onnx</option>
-		<option value="caffe">caffe</option>
+	<div id="noModelConfig" class="model-config">
+		<button id = "annotation" onclick="redirectToAnotherPage()">数据标注</button>
+		<br>
+		<!-- <form id="uploadForm" enctype='multipart/form-data' method='POST'>
+			<label for="profile_pic">选择要上传的数据集文件</label>
+			<input type="file" id="dataset_file" name="dataset_file" webkitdirectory onchange ="updateDatasetButtonState()"/>
+			<br>
+			<input type="button" id = "upload_dataset_button" value="上传数据集" onclick="uploadFile();updateTrainButtonState()" onchange="updateDatasetButtonState()" disabled>
+		</form> -->
+		<label for="epochs">epochs</label>
+		<input type="number" id="epochs" placeholder="epochs" value="4" onchange="updateParameter()">
+		<br>
+		<label for="batch-size">batch_size</label>
+		<input type="number" id="batch_size" placeholder="batch_size" value="8" onchange="updateParameter()">
+		<br>
+		<button id = "train" onclick="performTask('/train')"  disabled>模型训练</button>
+		<button id = "pt2onnx" onclick="performTask('/export')" disabled >转换为onnx模型</button>
+		<br>
+	</div>
+
+	<div id="withModelConfig">
+		<select id="model_type" name="model_type" onchange ="updateModelFileSelectState();updateParameter()">
+			<option value="onnx">onnx</option>
+			<option value="caffe">caffe</option>
+		</select>
+		<br>
+		<form id="uploadForm" enctype='multipart/form-data' method='POST'>
+			<label for="profile_pic">选择要上传的onnx文件</label>
+			<input type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange ="updateButtonState()"/>
+			<br>
+			<label for="profile_pic">选择要上传的prototxt文件</label>
+			<input type="file" id="prototxt_file" name="prototxt_file" accept=".prototxt" onchange ="updateButtonState()" disabled/>
+			<br>
+			<label for="profile_pic">选择要上传的caffemodel文件</label>
+			<input type="file" id="caffemodel_file" name="caffemodel_file" accept=".caffemodel" onchange ="updateButtonState()" disabled/>
+			<br>
+			<!-- <label for="profile_pic">选择要上传的配置文件</label>
+			<input type="file" id="config_file" name="config_file" accept=".yaml" onchange ="updateButtonState()"/>
+			<br> -->
+			<label for="profile_pic">选择要上传的图片文件</label>
+			<input type="file" id="image_file" name="image_file" webkitdirectory onchange ="updateButtonState()"/>
+			<br>
+			<input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchange="updateButtonState()" disabled>
+		</form>
+	</div>
+	<br>
+	<!-- 配置参数 -->
+	<label for="profile_pic">网络实际执行时的数据格式</label>
+	<select id="input_type_rt" name="input_type_rt" onchange ="updateParameter()">
+		<option value="nv12">nv12</option>
+		<option value="rgb">rgb</option>
+		<option value="bgr">bgr</option>
+		<option value="yuv444">yuv444</option>
+		<option value="gray">gray</option>
+		<option value="featuremap">featuremap</option>
 	</select>
 	<br>
-	<form id="uploadForm" enctype='multipart/form-data' method='POST'>
-		<label for="profile_pic">选择要上传的onnx文件</label>
-		<input type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange ="updateButtonState()"/>
-		<br>
-		<label for="profile_pic">选择要上传的prototxt文件</label>
-		<input type="file" id="prototxt_file" name="prototxt_file" accept=".prototxt" onchange ="updateButtonState()" disabled/>
-		<br>
-		<label for="profile_pic">选择要上传的caffemodel文件</label>
-		<input type="file" id="caffemodel_file" name="caffemodel_file" accept=".caffemodel" onchange ="updateButtonState()" disabled/>
-		<br>
-		<label for="profile_pic">选择要上传的配置文件</label>
-		<input type="file" id="config_file" name="config_file" accept=".yaml" onchange ="updateButtonState()"/>
-		<br>
-		<label for="profile_pic">选择要上传的图片文件</label>
-		<input type="file" id="image_file" name="image_file" webkitdirectory onchange ="updateButtonState()"/>
-		<br>
-		<input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchan="updateButtonState()" disabled>
-	</form>
+	<label for="profile_pic">网络实际执行时输入的数据排布</label>
+	<select id="input_layout_rt" name="input_layout_rt" onchange ="updateParameter()">
+		<option value="NHWC">NHWC</option>
+		<option value="NCHW">NCHW</option>
+	</select>	
+	<br>
+	<label for="profile_pic">网络训练时输入的数据格式</label>
+	<select id="input_type_train" name="input_type_train" onchange ="updateParameter()">
+		<option value="rgb">rgb</option>
+		<option value="nv12">nv12</option>
+		<option value="bgr">bgr</option>
+		<option value="yuv444">yuv444</option>
+		<option value="gray">gray</option>
+		<option value="featuremap">featuremap</option>
+	</select>
+	<br>
+	<label for="profile_pic">网络训练时输入的数据排布</label>	
+	<select id="input_layout_train" name="input_layout_train" onchange ="updateParameter()">
+		<option value="NCHW">NCHW</option>
+		<option value="NHWC">NHWC</option>
+	</select>
+	<br>
+	<label for="profile_pic">网络输入的预处理方法</label>
+	<select id="norm_type" name="norm_type" onchange ="updateParameter()">
+		<option value="data_mean_and_scale">data_mean_and_scale</option>
+		<option value="no_preprocess">no_preprocess</option>
+		<option value="data_mean">data_mean</option>
+		<option value="data_scale">data_scale</option>
+	</select>	
+	<input type="text" id="mean_value" placeholder="减去的均值" value="123.675 116.28 103.53" onchange="updateParameter()">
+	<input type="text" id="scale_value" placeholder="缩放的比例" value="0.0171248 0.017507 0.0174292" onchange="updateParameter()">
 
 	<script>
 		function uploadFile() {
 		  var form = document.getElementById('uploadForm');
 		  var formData = new FormData(form);
-	
+
 		  var xhr = new XMLHttpRequest();
 		  xhr.open('POST', '/upload', true);
 	
@@ -109,6 +182,56 @@
 		}
 	</script>
 
+	<script>
+		function updateConfig(){
+			var model_name = document.getElementById('model_name').value
+
+			if(model_name == 'resnet18'){
+				document.getElementById('input_type_rt').value = 'nv12';
+				document.getElementById('input_layout_rt').value = 'NHWC';
+				document.getElementById('input_type_train').value = 'rgb';
+				document.getElementById('input_layout_train').value = 'NCHW';
+				document.getElementById('norm_type').value = 'data_mean_and_scale';
+				document.getElementById('mean_value').value = '123.675 116.28 103.53';
+				document.getElementById('scale_value').value = '0.0171248 0.017507 0.0174292';
+				document.getElementById('dimensionType').value = '224x224';
+			}
+		}
+	</script>
+
+	<script>
+		function updateTrainButtonState(){
+			var train = document.getElementById('train');
+			var pt2onnx = document.getElementById('pt2onnx');
+			train.disabled = false;
+			pt2onnx.disabled = false;
+		}
+	</script>
+
+	<script>
+		function converConfigStateChange(){
+			var has_model = document.getElementById('has_model').value;
+			var input_type_train = document.getElementById('input_type_train');
+			var input_layout_train = document.getElementById('input_layout_train');
+			var norm_type = document.getElementById('norm_type');
+			var mean_value = document.getElementById('mean_value');
+			var scale_value = document.getElementById('scale_value');
+			if(has_model == "true"){
+				input_type_train.disabled = false;
+				input_layout_train.disabled = false;
+				norm_type.disabled = false;
+				mean_value.disabled = false;
+				scale_value.disabled = false;
+			} else {
+				input_type_train.disabled = true;
+				input_layout_train.disabled = true;	
+				norm_type.disabled = true;
+				mean_value.disabled = true;
+				scale_value.disabled = true;
+			}
+		}
+	</script>
+
     {% with messages = get_flashed_messages() %}
          {% if messages %}
                {% for message in messages %}
@@ -118,14 +241,19 @@
     {% endwith %}
 	<p>{{ check_log }}</p>
 	
-	<button id = "annotation" onclick="redirectToAnotherPage()" disabled onclick="trainState()">数据标注</button>
-	<button id = "train" onclick="performTask('/train')" disabled onclick="trainState()">模型训练</button>
-	<button id = "pt2onnx" onclick="performTask('/export')" disabled onclick="trainState()">转换为onnx模型</button>
-	<br>
+
 	<button onclick="performTask('/convert')">一键转换</button>
 
 
     <div id="result-container"></div>
+
+	<script>
+        function updateDatasetButtonState() {
+			var dataset_file_input = document.getElementById('dataset_file');
+			var uploadDatasetButton = document.getElementById('upload_dataset_button');
+            uploadDatasetButton.disabled = !dataset_file_input.files.length;
+        }
+    </script>
 
 	<script>
         function updateParameter() {
@@ -134,6 +262,22 @@
 			var customHeight = document.getElementById('customHeight').value;
 			var model_name = document.getElementById('model_name').value;
 			var model_type = document.getElementById('model_type').value;
+
+			var input_type_rt = document.getElementById('input_type_rt').value;
+			var input_layout_rt = document.getElementById('input_layout_rt').value;
+			var input_type_train = document.getElementById('input_type_train').value;
+			var input_layout_train = document.getElementById('input_layout_train').value;
+			var norm_type = document.getElementById('norm_type').value;
+
+			var has_model = document.getElementById('has_model').value;
+			// var has_dataset = document.getElementById('has_dataset').value;
+
+			var mean_value = document.getElementById('mean_value').value;
+			var scale_value = document.getElementById('scale_value').value;
+
+			var epochs = document.getElementById('epochs').value;
+			var batch_size = document.getElementById('batch_size').value
+
 			var xhr = new XMLHttpRequest();
 			xhr.open('POST', '/update_parameter', true);
 			xhr.setRequestHeader('Content-Type', 'application/json');
@@ -142,7 +286,21 @@
 				model_name: model_name,
 				customWidth: customWidth,
 				customHeight: customHeight,
-				model_type: model_type
+				model_type: model_type,
+				
+				input_type_rt: input_type_rt,
+				input_layout_rt:input_layout_rt,
+				input_type_train: input_type_train,
+				input_layout_train: input_layout_train,
+				norm_type: norm_type,
+				has_model: has_model,
+				// has_dataset: has_dataset,
+
+				mean_value: mean_value,
+				scale_value: scale_value,
+				
+				epochs: epochs,
+				batch_size: batch_size
 			};
 			var jsonData = JSON.stringify(data);
 			xhr.onreadystatechange = function() {
@@ -155,19 +313,16 @@
     </script>
 
 	<script>
-		function trainState() {
-			var has_model = document.getElementById('has_model').value;
-			var annotation = document.getElementById('annotation');
-			var train = document.getElementById('train');
-			var pt2onnx = document.getElementById('pt2onnx');
-			if(has_model == "true") {
-				annotation.disabled = true;
-				train.disabled = true;
-				pt2onnx.disabled = true;
+		function trainStateChange() {
+			var has_model = document.getElementById("has_model");
+			var noModelConfig = document.getElementById("noModelConfig");
+			var withModelConfig = document.getElementById("withModelConfig");
+			if(has_model.value == "true"){
+				noModelConfig.style.display = "none";
+       			withModelConfig.style.display = "block";
 			} else {
-				annotation.disabled = false;
-				train.disabled = false;
-				pt2onnx.disabled = false;
+				noModelConfig.style.display = "block";
+        		withModelConfig.style.display = "none";
 			}
 		}
 	</script>
@@ -226,12 +381,14 @@
 			var onnx_file_input = document.getElementById('onnx_file');
 			var prototxt_file_input = document.getElementById('prototxt_file');
 			var caffemodel_file_input = document.getElementById('caffemodel_file');
-			var config_file_input = document.getElementById('config_file');
+			// var config_file_input = document.getElementById('config_file');
 			var image_file_input = document.getElementById('image_file');
+
 			var uploadButton = document.getElementById('upload_button');
 
             // 如果文件输入框有选择文件，则启用按钮；否则禁用按钮
-            uploadButton.disabled = !((onnx_file_input.files.length || (prototxt_file_input && caffemodel_file_input))&& config_file_input.files.length && image_file_input.files.length);
+
+            uploadButton.disabled = !(((onnx_file_input.files.length || (prototxt_file_input && caffemodel_file_input)) && image_file_input.files.length));
 			// uploadButton.disabled = !model_file_input.files.length
         }
     </script>
