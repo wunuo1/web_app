@@ -122,9 +122,7 @@ def upload():
     if request.method == 'POST':
         try:
             if has_model == "true":
-                print("test")
                 if model_type == "onnx":
-                    print(request.files)
                     onnx_file = request.files['onnx_file']
                     
                     onnx_file_path = os.path.join(temporary_path, onnx_file.filename)

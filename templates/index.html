@@ -70,12 +70,12 @@
 	<div id="noModelConfig" class="model-config">
 		<button id = "annotation" onclick="redirectToAnotherPage()">数据标注</button>
 		<br>
-		<!-- <form id="uploadForm" enctype='multipart/form-data' method='POST'>
+		<form id="uploadDataset" enctype='multipart/form-data' method='POST'>
 			<label for="profile_pic">选择要上传的数据集文件</label>
 			<input type="file" id="dataset_file" name="dataset_file" webkitdirectory onchange ="updateDatasetButtonState()"/>
 			<br>
-			<input type="button" id = "upload_dataset_button" value="上传数据集" onclick="uploadFile();updateTrainButtonState()" onchange="updateDatasetButtonState()" disabled>
-		</form> -->
+			<input type="button" id = "upload_dataset_button" value="上传数据集" onclick="uploadDataset();updateTrainButtonState()" onchange="updateDatasetButtonState()" disabled>
+		</form>
 		<label for="epochs">epochs</label>
 		<input type="number" id="epochs" placeholder="epochs" value="4" onchange="updateParameter()">
 		<br>
@@ -179,6 +179,32 @@
 		  };
 	
 		  xhr.send(formData);
+		}
+	</script>
+
+	<script>
+		function uploadDataset() {
+		var form = document.getElementById('uploadDataset');
+		var formData = new FormData(form);
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', '/upload', true);
+
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
+			if (xhr.status === 200) {
+				// 处理上传成功的情况
+				var response = JSON.parse(xhr.responseText);
+				document.getElementById('result').innerHTML = 'File uploaded successfully: ' + response.filename;
+			} else {
+				// 处理上传失败的情况
+				var response = JSON.parse(xhr.responseText);
+				document.getElementById('result').innerHTML = 'Upload failed: ' + response.message;
+			}
+			}
+		};
+
+		xhr.send(formData);
 		}
 	</script>
 
