@@ -19,7 +19,7 @@
 </head>
 <body>
 	<h1>模型量化转换工具</h1>
-	<select id="model_name" name="model_name" onchange="updateParameter();updateConfig()">
+	<select id="model_name" name="model_name" onchange="updateParameter();updateDefaultConfig()">
 		<option value="resnet18">resnet18</option>
 		<option value="01_mobilenet">mobilenetv1</option>
 		<option value="04_mobilenet_onnx">mobilenetv2</option>
@@ -42,8 +42,8 @@
 	</select>
 	<br>
 	<select id="has_model" name="has_model" onchange="trainStateChange();updateParameter();converConfigStateChange()">
-		<option value="true">已有模型</option>
-		<option value="false">没有模型</option>
+		<option value="true">已有onnx/caffe模型</option>
+		<option value="false">没有onnx/caffe模型</option>
 	</select>
 	<!-- <br>
 	<select id="has_dataset" name="has_dataset" onchange = "updateParameter()">
@@ -106,7 +106,7 @@
 			<!-- <label for="profile_pic">选择要上传的配置文件</label>
 			<input type="file" id="config_file" name="config_file" accept=".yaml" onchange ="updateButtonState()"/>
 			<br> -->
-			<label for="profile_pic">选择要上传的图片文件</label>
+			<label for="profile_pic">选择要上传的校准图片文件</label>
 			<input type="file" id="image_file" name="image_file" webkitdirectory onchange ="updateButtonState()"/>
 			<br>
 			<input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchange="updateButtonState()" disabled>
@@ -155,6 +155,17 @@
 	</select>	
 	<input type="text" id="mean_value" placeholder="减去的均值" value="123.675 116.28 103.53" onchange="updateParameter()">
 	<input type="text" id="scale_value" placeholder="缩放的比例" value="0.0171248 0.017507 0.0174292" onchange="updateParameter()">
+	<br>
+	<button onclick="performTask('/convert')">一键转换</button>
+	<button onclick="displayImage()">显示推理效果</button>	
+	<br>
+	<button onclick="downloadBinModel()">下载bin模型</button>
+	<button onclick="downloadAllModel()">下载所有模型</button>
+	
+    <div id="outputContainer">
+        <pre id="output"></pre>
+    </div>
+
 
 	<script>
 		function uploadFile() {
@@ -209,7 +220,7 @@
 	</script>
 
 	<script>
-		function updateConfig(){
+		function updateDefaultConfig(){
 			var model_name = document.getElementById('model_name').value
 
 			if(model_name == 'resnet18'){
@@ -267,12 +278,6 @@
     {% endwith %}
 	<p>{{ check_log }}</p>
 	
-
-	<button onclick="performTask('/convert')">一键转换</button>
-
-
-    <div id="result-container"></div>
-
 	<script>
         function updateDatasetButtonState() {
 			var dataset_file_input = document.getElementById('dataset_file');
@@ -394,10 +399,6 @@
                 method: 'POST',
             })
             .then(response => response.json())
-            .then(data => {
-                // 将结果显示在页面上
-                document.getElementById('result-container').innerText = data.result;
-            })
             .catch(error => console.error('Error:', error));
         }
     </script>
@@ -418,8 +419,6 @@
 			// uploadButton.disabled = !model_file_input.files.length
         }
     </script>
-	<button onclick="downloadBinModel()">下载bin模型</button>
-	<button onclick="downloadAllModel()">下载所有模型</button>
 
     <script>
         function downloadBinModel() {
@@ -437,15 +436,9 @@
 		function redirectToAnotherPage() {
 			// 在这里设置跳转的目标页面的 URL
 			window.open("http://localhost:8080", '_blank');
-			// var targetPageUrl = "http://localhost:8080";
-	
-			// // 使用 JavaScript 跳转到目标页面
-			// window.location.href = targetPageUrl;
 		}
 	</script>
-    <div id="outputContainer">
-        <pre id="output"></pre>
-    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);

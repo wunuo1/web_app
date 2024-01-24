@@ -30,7 +30,7 @@ def calibration_transforms(args):
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Generate calibration dataset for conversion')
     parser.add_argument('--dataset', type=str, required=True, help='Root directory of dataset')
-    parser.add_argument('--outdir', type=str, default='/open_explorer/web_app/temporary/calibration_data/', help='Output directory')
+    parser.add_argument('--outdir', type=str, default='/root/tool_chain_temporary/calibration_data', help='Output directory')
     parser.add_argument('--model', type=str, required=True, help='Model type')
     parser.add_argument('--width', type=int, default=224, help='Image width')
     parser.add_argument('--height', type=int, default=224, help='Image height')
