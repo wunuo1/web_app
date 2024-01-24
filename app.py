@@ -28,11 +28,11 @@ input_type_rt = "nv12"
 input_layout_rt = "NHWC"
 input_type_train = "rgb"
 input_layout_train = "NCHW"
-norm_type = "no_preprocess"
+norm_type = "data_mean_and_scale"
 has_model = "true"
 # has_dataset = "false"
-mean_value_array = [0.0, 0.0, 0.0]
-scale_value_array = [1.0, 1.0, 1.0]
+mean_value_array = [123.675, 116.28, 103.53]
+scale_value_array = [0.0171248, 0.017507, 0.0174292]
 
 epochs = 4
 batch_size = 8
@@ -144,11 +144,12 @@ def upload():
                 image_files = request.files.getlist('image_file')
                 folder_name = os.path.dirname(image_files[0].filename)
                 directory_path = os.path.join(temporary_path, folder_name)
+                image_folder_path = directory_path
+                directory_path = os.path.join(directory_path, folder_name)
                 if not os.path.exists(directory_path):
                     os.makedirs(directory_path)
-                image_folder_path = directory_path
                 for file in image_files:
-                    image_file_path = os.path.join(temporary_path, file.filename)
+                    image_file_path = os.path.join(temporary_path, folder_name, file.filename)
                     file.save(image_file_path)
             else:
                 dataset_files = request.files.getlist('dataset_file')
@@ -168,7 +169,8 @@ def upload():
 
             upload_message = "Upload successful\n"
         except Exception as r:
-            upload_message = "Upload false\n"
+            # upload_message = "Upload false\n"
+            upload_message = str(r)
         socketio.emit('output', upload_message) 
     return render_template('index.html')
 
@@ -225,7 +227,7 @@ def convert():
         #preprocess
         model_path = os.path.dirname(find_file_in_folder(model_folder_name = model_name))
         # runCommandAndOutLog(f"cd {model_path} && /usr/bin/python3 {preprocess_py} --dst_dir {temporary_path}/calibration_data --pic_ext .rgb --read_mode opencv --saved_data_type float32 --src_dir {image_folder_path} ")
-        runCommandAndOutLog(f"/usr/bin/python3 data/generate_calibration_data.py  --dataset {image_folder_path} --model {model_name} --width {width} --height {height} --format rgb ")
+        runCommandAndOutLog(f"/usr/bin/python3 /open_explorer/web_app/data/generate_calibration_data.py  --dataset {image_folder_path} --model {model_name} --width {width} --height {height} --format rgb ")
         socketio.emit('output', "校准数据准备完成\n") 
 
         # build
@@ -241,7 +243,7 @@ def convert():
         socketio.emit('output', "模型检查完成\n") 
 
         #preprocess
-        runCommandAndOutLog(f"/usr/bin/python3 data/generate_calibration_data.py  --dataset {dataset_file_path} --model {model_name} --width {width} --height {height} --format rgb ")
+        runCommandAndOutLog(f"/usr/bin/python3 /open_explorer/web_app/data/generate_calibration_data.py  --dataset {dataset_file_path} --model {model_name} --width {width} --height {height} --format rgb ")
         socketio.emit('output', "校准数据准备完成\n") 
 
         # build
@@ -256,7 +258,7 @@ def convert():
 @app.route('/download_all_model')
 def download_all_model():
     socketio.emit('output', "Packaging all models\n") 
-    os.system(f"tar zcvf temporary/model_output.tar.gz temporary/model_output")
+    os.system(f"cd {temporary_path} && tar zcvf model_output.tar.gz model_output")
     return send_from_directory(r"/open_explorer/web_app/temporary","model_output.tar.gz", as_attachment=True)
 
 @app.route('/download_bin_model')
@@ -305,5 +307,5 @@ def update_parameter():
 
 if __name__ == '__main__':
     # app.run(host="0.0.0.0",port=5000,debug=True)
-    socketio.run(app,host="0.0.0.0",port=5001, debug=True)
+    socketio.run(app,host="0.0.0.0",port=5001, debug=True, allow_unsafe_werkzeug=True)
 

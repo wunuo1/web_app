@@ -54,7 +54,7 @@ def main(args):
             break
         img, label = dataset[i]
         img.squeeze().numpy().tofile(args.outdir + '/' + str(i) + "_." + args.format)
-        print(args.outdir + '/' + str(i) + "_." + args.format,flush=True)
+        print(args.outdir + str(i) + "_." + args.format,flush=True)
       
 
 if __name__ == '__main__':
