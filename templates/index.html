@@ -19,9 +19,10 @@
 </head>
 <body>
 	<h1>模型量化转换工具</h1>
-	<select id="model_name" name="model_name" onchange="updateParameter();updateDefaultConfig()">
-		<option value="resnet18">resnet18</option>
-		<option value="01_mobilenet">mobilenetv1</option>
+	<select id="model_name" name="model_name" onchange="updateDefaultConfig()">
+		<option value="resnet18_track_detection">resnet18_track_detection</option>
+		<option value="yolov5s-2.0">yolov5s-2.0</option>
+		<!-- <option value="01_mobilenet">mobilenetv1</option>
 		<option value="04_mobilenet_onnx">mobilenetv2</option>
 		<option value="googlenet">googlenet</option>
 		<option value="efficientnet_lite0_onnx">efficientnet-lite0</option>
@@ -31,14 +32,13 @@
 		<option value="efficientnet_lite4_onnx">efficientnet-lite4</option>
 		<option value="yolov2_darknet19">yolov2_darknet19</option>
 		<option value="yolov3_darknet53">yolov3_darknet53</option>
-		<option value="yolov5s">yolov5s-2.0</option>
 		<option value="ssd_mobilenetv1">mobilenetv1_ssd</option>
 		<option value="efficientdetd0">efficientdetd0</option>
 		<option value="centernet_resnet50">centernet_resnet50</option>
 		<option value="fcos_efficientnetb0">fcos_efficientnetb0</option>
 		<option value="unet_mobilenet">unet_mobilenet</option>
 		<option value="deeplabv3plus_efficientnetb0">deeplabv3plus_efficientnetb0</option>
-		<option value="fastscnn_efficientnetb0">fastscnn_efficientnetb0</option>
+		<option value="fastscnn_efficientnetb0">fastscnn_efficientnetb0</option> -->
 	</select>
 	<br>
 	<select id="has_model" name="has_model" onchange="trainStateChange();updateParameter();converConfigStateChange()">
@@ -128,6 +128,7 @@
 	<select id="input_layout_rt" name="input_layout_rt" onchange ="updateParameter()">
 		<option value="NHWC">NHWC</option>
 		<option value="NCHW">NCHW</option>
+		<option value="None">None</option>
 	</select>	
 	<br>
 	<label for="profile_pic">网络训练时输入的数据格式</label>
@@ -144,6 +145,7 @@
 	<select id="input_layout_train" name="input_layout_train" onchange ="updateParameter()">
 		<option value="NCHW">NCHW</option>
 		<option value="NHWC">NHWC</option>
+		<option value="None">None</option>
 	</select>
 	<br>
 	<label for="profile_pic">网络输入的预处理方法</label>
@@ -157,7 +159,13 @@
 	<input type="text" id="scale_value" placeholder="缩放的比例" value="0.0171248 0.017507 0.0174292" onchange="updateParameter()">
 	<br>
 	<button onclick="performTask('/convert')">一键转换</button>
-	<button onclick="displayImage()">显示推理效果</button>	
+	<br>
+	
+	<form id="uploadDetectImage" enctype='multipart/form-data' method='POST'>
+		<label for="profile_pic">上传一张图片查看推理效果</label>
+		<input type="file" id="detect_image_file" name="detect_image_file" accept="image/*" onchange="uploadDetectImage()"/>
+		<!-- <input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchange="updateButtonState()" disabled> -->
+	</form>
 	<br>
 	<button onclick="downloadBinModel()">下载bin模型</button>
 	<button onclick="downloadAllModel()">下载所有模型</button>
@@ -220,19 +228,55 @@
 	</script>
 
 	<script>
+		function uploadDetectImage() {
+		var form = document.getElementById('uploadDetectImage');
+		var formData = new FormData(form);
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', '/detect', true);
+
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
+			if (xhr.status === 200) {
+				// 处理上传成功的情况
+				var response = JSON.parse(xhr.responseText);
+				document.getElementById('result').innerHTML = 'File uploaded successfully: ' + response.filename;
+			} else {
+				// 处理上传失败的情况
+				var response = JSON.parse(xhr.responseText);
+				document.getElementById('result').innerHTML = 'Upload failed: ' + response.message;
+			}
+			}
+		};
+
+		xhr.send(formData);
+		}
+	</script>
+
+	<script>
 		function updateDefaultConfig(){
 			var model_name = document.getElementById('model_name').value
 
-			if(model_name == 'resnet18'){
+			if(model_name == 'resnet18_track_detection'){
 				document.getElementById('input_type_rt').value = 'nv12';
-				document.getElementById('input_layout_rt').value = 'NHWC';
+				document.getElementById('input_layout_rt').value = 'None';
 				document.getElementById('input_type_train').value = 'rgb';
 				document.getElementById('input_layout_train').value = 'NCHW';
 				document.getElementById('norm_type').value = 'data_mean_and_scale';
 				document.getElementById('mean_value').value = '123.675 116.28 103.53';
 				document.getElementById('scale_value').value = '0.0171248 0.017507 0.0174292';
 				document.getElementById('dimensionType').value = '224x224';
+			} else if (model_name == 'yolov5s-2.0'){
+				document.getElementById('input_type_rt').value = 'nv12';
+				document.getElementById('input_layout_rt').value = 'None';
+				document.getElementById('input_type_train').value = 'rgb';
+				document.getElementById('input_layout_train').value = 'NCHW';
+				document.getElementById('norm_type').value = 'data_scale';
+				document.getElementById('mean_value').value = '';
+				document.getElementById('scale_value').value = '0.003921568627451';
+				document.getElementById('dimensionType').value = '672x672';
 			}
+			updateParameter();
 		}
 	</script>
 

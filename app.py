@@ -7,24 +7,25 @@ import sys
 import glob
 import yaml
 from datetime import datetime
+from utils.model_train import get_train_command
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 app.secret_key = 'random string'
 
-onnx_file_path = "./best.onnx"
+onnx_file_path = ""
 prototxt_file_path = ""
 caffemodel_file_path = ""
-config_file_path = ""
 image_folder_path = ""
-model_name = "resnet18"
+config_file_path = ""
+model_name = "resnet18_track_detection"
 model_type = "onnx"
 dimension_type = "224x224"
 width = 224
 height = 224
 
 input_type_rt = "nv12"
-input_layout_rt = "NHWC"
+input_layout_rt = "None"
 input_type_train = "rgb"
 input_layout_train = "NCHW"
 norm_type = "data_mean_and_scale"
@@ -37,16 +38,23 @@ epochs = 4
 batch_size = 8
 
 dataset_file_path = ""
-temporary_path = "/root/tool_chain_temporary"
+data_path = "/root/tool_chain_temporary" #Path for storing uploaded and generated files
+temporary_path = ""
 search_path='/open_explorer/horizon_xj3_open_explorer_v2.6.2b-py38_20230606/ddk/samples/ai_toolchain/horizon_model_convert_sample'
 preprocess_py = '/open_explorer/horizon_xj3_open_explorer_v2.6.2b-py38_20230606/ddk/samples/ai_toolchain/horizon_model_convert_sample/data_preprocess.py'
 
-def find_file_in_folder(model_folder_name):
-    path = glob.glob(search_path + '/*/*' + model_name + '*/mapper/02_preprocess.sh')
-    if len(path) != 0:
-        return path[0]
-    else:
-        return None
+def find_file_ending_with(directory_path, endswith):
+    for filename in os.listdir(directory_path):
+        if filename.endswith(endswith):
+            return os.path.join(directory_path, filename)
+    return None
+
+# def find_file_in_folder(model_folder_name):
+#     path = glob.glob(search_path + '/*/*' + model_name + '*/mapper/02_preprocess.sh')
+#     if len(path) != 0:
+#         return path[0]
+#     else:
+#         return None
 
 def parse_mean_scale(mean_value_text,scale_value_text):
     mean_values = mean_value_text.split()
@@ -75,10 +83,18 @@ def parse_mean_scale(mean_value_text,scale_value_text):
             socketio.emit('output', "Please enter scale_value one or three numbers\n") 
 
 def update_config_file():
-    with open(f'{temporary_path}/{model_name}_config.yaml', 'r') as file:
+    with open(f'{config_file_path}', 'r') as file:
         data = yaml.safe_load(file)
     # 修改值
-    data['model_parameters']['onnx_model'] = onnx_file_path
+    if model_type == "onnx":
+        data['model_parameters']['onnx_model'] = onnx_file_path
+        data['model_parameters']['caffe_model'] = ''
+        data['model_parameters']['prototxt'] = ''
+    else:
+        data['model_parameters']['caffe_model'] = caffemodel_file
+        data['model_parameters']['prototxt'] = prototxt_file
+        data['model_parameters']['onnx_model'] = ''
+
     data['input_parameters']['input_type_train'] = input_type_train
     if input_type_train == "nv12":
         data['input_parameters']['input_layout_train'] = ''
@@ -105,7 +121,7 @@ def update_config_file():
         data['input_parameters']['mean_value'] = ''
         data['input_parameters']['scale_value'] = ''
     # 写回YAML文件
-    with open(f'{temporary_path}/{model_name}_config.yaml', 'w') as file:
+    with open(f'{config_file_path}', 'w') as file:
         yaml.dump(data, file)
     return
 
@@ -122,8 +138,8 @@ def index():
 
 @app.route('/upload',methods=["POST","GET"])
 def upload():
-    global config_file_path, image_folder_path, onnx_file_path, prototxt_file_path,caffemodel_file_path, dataset_file_path, temporary_path
-    temporary_path = "/root/tool_chain_temporary"
+    global image_folder_path, onnx_file_path, prototxt_file_path,caffemodel_file_path, dataset_file_path, temporary_path
+    temporary_path = data_path
     temporary_path = create_unique_folder(temporary_path)
 
     if request.method == 'POST':
@@ -151,6 +167,7 @@ def upload():
                 folder_name = os.path.dirname(image_files[0].filename)
                 directory_path = os.path.join(temporary_path, folder_name)
                 image_folder_path = directory_path
+                # TODO
                 directory_path = os.path.join(directory_path, folder_name)
                 if not os.path.exists(directory_path):
                     os.makedirs(directory_path)
@@ -160,10 +177,9 @@ def upload():
             else:
                 dataset_files = request.files.getlist('dataset_file')
                 dataset_file_path = os.path.join(temporary_path, (dataset_files[0].filename).split('/')[0])
-                # print(dataset_files[0])
                 for file in dataset_files:
                     if file.filename != '':
-                    #     # 获取文件名，用作文件夹名
+                        # 获取文件名，用作文件夹名
                         folder_name = os.path.dirname(file.filename)
                         # 创建文件夹
                         folder_path = os.path.join(temporary_path, folder_name)
@@ -187,17 +203,14 @@ def runCommandAndOutLog(command):
                 break
             emit_function('output', line)
 
-    # 启动用于读取 stdout 和 stderr 的两个线程
     stdout_thread = threading.Thread(target=output_reader, args=(process.stdout, socketio.emit))
     stderr_thread = threading.Thread(target=output_reader, args=(process.stderr, socketio.emit))
 
     stdout_thread.start()
     stderr_thread.start()
 
-    # 等待进程完成
     process.wait()
 
-    # 等待线程完成
     stdout_thread.join()
     stderr_thread.join()
 
@@ -205,55 +218,67 @@ def runCommandAndOutLog(command):
 @app.route('/train', methods=['POST'])
 def train():
     socketio.emit('output', "start the training\n") 
-    runCommandAndOutLog(f"cd /model_zoo/{model_name} && /usr/bin/python3 train.py --dataset {dataset_file_path} --batch-size {batch_size} --epochs {epochs} --outdir {temporary_path}")
+    train_command = get_train_command(model_name = model_name, dataset = dataset_file_path, batch_size = batch_size, epochs = epochs, outdir = temporary_path, width = width, height = height)
+    # print(train_command)
+    runCommandAndOutLog(train_command)
     socketio.emit('output', "train completed\n") 
     return '', 200
 
 @app.route('/export', methods=['POST'])
 def export():
-    runCommandAndOutLog(f"cd /model_zoo/{model_name} && /usr/bin/python3 export.py --indir {temporary_path} --outdir {temporary_path}")
+    global onnx_file_path
+    pt_model_path = find_file_ending_with(temporary_path, ".pt")
+    runCommandAndOutLog(f"cd /model_zoo/{model_name} && /usr/bin/python3 export.py --model_path {pt_model_path} --outdir {temporary_path}")
+    onnx_file_path = find_file_ending_with(temporary_path, ".onnx")
     socketio.emit('output', "export completed\n") 
     return '', 200
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    # find_file_in_folder(model_folder_name = model_name)
-    if (onnx_file_path != "" or (prototxt_file_path != "" and caffemodel_file_path != "")) and image_folder_path != "":
-        #有模型
+    global config_file_path
+    try:
         #check
         runCommandAndOutLog(f"cd {temporary_path} && hb_mapper checker --model-type onnx --model {onnx_file_path} --march bernoulli2")
         socketio.emit('output', "模型检查完成\n") 
 
-        #preprocess
-        model_path = os.path.dirname(find_file_in_folder(model_folder_name = model_name))
-        # runCommandAndOutLog(f"cd {model_path} && /usr/bin/python3 {preprocess_py} --dst_dir {temporary_path}/calibration_data --pic_ext .rgb --read_mode opencv --saved_data_type float32 --src_dir {image_folder_path} ")
-        runCommandAndOutLog(f"/usr/bin/python3 /web_app/data/generate_calibration_data.py  --dataset {image_folder_path} --model {model_name} --width {width} --height {height} --format rgb --outdir {temporary_path}/calibration_data")
-        socketio.emit('output', "校准数据准备完成\n") 
+        if has_model == "true":
+            #有模型
+            #preprocess
+            runCommandAndOutLog(f"/usr/bin/python3 /web_app/data/generate_calibration_data.py  --dataset {image_folder_path} --model {model_name} --width {width} --height {height} --format rgb --outdir {temporary_path}/calibration_data")
+            socketio.emit('output', "校准数据准备完成\n") 
+
+        else:
+            #没有模型，训练的
+            #preprocess
+            runCommandAndOutLog(f"/usr/bin/python3 /web_app/data/generate_calibration_data.py  --dataset {dataset_file_path} --model {model_name} --width {width} --height {height} --format rgb --outdir {temporary_path}/calibration_data")
+            socketio.emit('output', "校准数据准备完成\n") 
 
         # build
-        runCommandAndOutLog(f"cp /model_zoo/{model_name}/{model_name}_config.yaml {temporary_path}")
+        ori_config_file_path = find_file_ending_with(f"/model_zoo/{model_name}", "_config.yaml")
+        config_file_path = os.path.join(temporary_path, os.path.basename(ori_config_file_path))
+        runCommandAndOutLog(f"cp {ori_config_file_path} {temporary_path}")
         update_config_file()
 
-        runCommandAndOutLog(f"cd {temporary_path} && hb_mapper makertbin --config {temporary_path}/{model_name}_config.yaml --model-type {model_type} ")
+        runCommandAndOutLog(f"cd {temporary_path} && hb_mapper makertbin --config {config_file_path} --model-type {model_type} ")
         socketio.emit('output', "模型转换完成\n") 
-    else:
-        #没有模型，训练的
-        #check
-        runCommandAndOutLog(f"cd {temporary_path} && hb_mapper checker --model-type onnx --model {temporary_path}/best.onnx --march bernoulli2")
-        socketio.emit('output', "模型检查完成\n") 
 
-        #preprocess
-        runCommandAndOutLog(f"/usr/bin/python3 /web_app/data/generate_calibration_data.py  --dataset {dataset_file_path} --model {model_name} --width {width} --height {height} --format rgb --outdir {temporary_path}/calibration_data")
-        socketio.emit('output', "校准数据准备完成\n") 
-
-        # build
-        runCommandAndOutLog(f"cp /model_zoo/{model_name}/{model_name}_config.yaml {temporary_path}")
-        update_config_file()
-
-        runCommandAndOutLog(f"cd {temporary_path} && hb_mapper makertbin --config {temporary_path}/{model_name}_config.yaml --model-type {model_type} ")
-        socketio.emit('output', "模型转换完成\n") 
+    except Exception as r:
+        socketio.emit('output', str(r)) 
 
     return render_template('index.html')
+
+@app.route('/detect',methods=["POST","GET"])
+def detect():
+    if request.method == 'POST':
+        detect_image_file = request.files['detect_image_file']
+        detect_image_file_path = os.path.join(temporary_path, detect_image_file.filename)
+        detect_image_file.save(detect_image_file_path)
+        socketio.emit('output', "Upload detect image successful\n") 
+        runCommandAndOutLog(f"cd /model_zoo/{model_name} && /usr/bin/python3 detect.py    --source --outdir {temporary_path}")
+        socketio.emit('output', "train completed\n") 
+        return '', 200
+
+
 
 @app.route('/download_all_model')
 def download_all_model():

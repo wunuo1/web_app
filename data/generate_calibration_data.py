@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from data_transforms import DataTransforms, Resnet18DataTransforms
+from data_transforms import *
 
 import argparse
 import os
@@ -22,9 +22,12 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 def calibration_transforms(args):
-    if args.model == "resnet18":
-        transforms = Resnet18DataTransforms(args.width,args.height,args.mean,args.stddev,args.format)
-    return transforms.calibration_transforms()
+    
+    if args.model == "resnet18_track_detection":
+        data_transforms = Resnet18DataTransforms(args.width,args.height,args.mean,args.stddev,args.format)
+    elif args.model == "yolov5s-2.0":
+        data_transforms = Yolov5sv2DataTransforms(args.width,args.height,args.format)
+    return data_transforms.calibration_transforms()
 
 
 def get_args() -> argparse.Namespace:
