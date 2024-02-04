@@ -83,9 +83,9 @@ class NV12ToYUV444Transformer(object):
         return Image.fromarray(data)
 
 class PadResizeTransformer:
-    def __init__(self, width, height):
-        self.width = width
+    def __init__(self, height, width):
         self.height = height
+        self.width = width
 
     def __call__(self, img):
         # 计算比例
@@ -102,7 +102,6 @@ class PadResizeTransformer:
         ])
         resize_transform = transforms.Resize((new_height, new_width))
         pad_transform = transforms.Pad(padding=(int((self.width - new_width)/2), int((self.height - new_height)/2), int((self.width - new_width)/2), int((self.height - new_height)/2)), fill=127)
-        # pad_transform = transforms.Pad(padding=(int((self.height - new_height)/2), int((self.height - new_height)/2), int((self.width - new_width)/2), int((self.width - new_width)/2)), fill=127)
         transform = transforms.Compose([
             resize_transform,
             pad_transform
@@ -128,20 +127,21 @@ class Resnet18DataTransforms(DataTransforms):
     def calibration_transforms(self):
         transform = transforms.Compose(
             [FormatTransform(self.format),
-            transforms.Resize((self.width,self.height)),
+            transforms.Resize((self.height,self.width)),
             transforms.ToTensor(),
-            transforms.Normalize(self.mean,self.stddev)])
+            transforms.Lambda(lambda x: x * 255)])
         return transform
+
 
 class Yolov5sv2DataTransforms(DataTransforms):
     def __init__(self, width, height, format):
-       super(Yolov5sDataTransforms, self).__init__(width, height)
+       super(Yolov5sv2DataTransforms, self).__init__(width, height)
        self.format = format
     
     def calibration_transforms(self):
         transform = transforms.Compose(
             [FormatTransform(self.format),
-            PadResizeTransformer(self.width,self.height),
+            PadResizeTransformer(self.height, self.width),
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x * 255)])
         return transform

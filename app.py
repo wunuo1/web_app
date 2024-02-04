@@ -7,7 +7,8 @@ import sys
 import glob
 import yaml
 from datetime import datetime
-from utils.model_train import get_train_command
+from utils.model_train import *
+from utils.model_export import *
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -218,32 +219,47 @@ def runCommandAndOutLog(command):
 @app.route('/train', methods=['POST'])
 def train():
     socketio.emit('output', "start the training\n") 
-    train_command = get_train_command(model_name = model_name, dataset = dataset_file_path, batch_size = batch_size, epochs = epochs, outdir = temporary_path, width = width, height = height)
+    model_train = None
+    if model_name == "resnet18_track_detection":
+        model_train = Restnet18ModelTrain(model_name, dataset_file_path, batch_size, epochs, temporary_path)
+    elif model_name == "yolov5s-2.0":
+        model_train = Yolov5sv2ModelTrain(model_name, dataset_file_path, batch_size, epochs, temporary_path, f'{width} {height}')
+    train_command = model_train.get_train_command()
+
+    # train_command = get_train_command(model_name = model_name, dataset = dataset_file_path, batch_size = batch_size, epochs = epochs, outdir = temporary_path, width = width, height = height)
     # print(train_command)
+
+    #After training, it is necessary to ensure that the pt model is under temporary_path. eg.yolov5
     runCommandAndOutLog(train_command)
     socketio.emit('output', "train completed\n") 
     return '', 200
 
 @app.route('/export', methods=['POST'])
 def export():
-    global onnx_file_path
     pt_model_path = find_file_ending_with(temporary_path, ".pt")
-    runCommandAndOutLog(f"cd /model_zoo/{model_name} && /usr/bin/python3 export.py --model_path {pt_model_path} --outdir {temporary_path}")
-    onnx_file_path = find_file_ending_with(temporary_path, ".onnx")
+    model_export = None
+    if model_name == "resnet18_track_detection":
+        model_export = Restnet18ModelExport(model_name, pt_model_path, temporary_path)
+    elif model_name == "yolov5s-2.0":
+        model_export = Yolov5sv2ModelExport(model_name, pt_model_path, temporary_path, f'{width} {height}', 1 )
+    export_command = model_export.get_export_command()
+    runCommandAndOutLog(export_command)
     socketio.emit('output', "export completed\n") 
     return '', 200
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    global config_file_path
+    global config_file_path, onnx_file_path
     try:
         #check
+        onnx_file_path = find_file_ending_with(temporary_path, ".onnx")
         runCommandAndOutLog(f"cd {temporary_path} && hb_mapper checker --model-type onnx --model {onnx_file_path} --march bernoulli2")
         socketio.emit('output', "模型检查完成\n") 
 
         if has_model == "true":
             #有模型
             #preprocess
+            #TODO
             runCommandAndOutLog(f"/usr/bin/python3 /web_app/data/generate_calibration_data.py  --dataset {image_folder_path} --model {model_name} --width {width} --height {height} --format rgb --outdir {temporary_path}/calibration_data")
             socketio.emit('output', "校准数据准备完成\n") 
 
