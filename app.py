@@ -9,6 +9,7 @@ import yaml
 from datetime import datetime
 from utils.model_train import *
 from utils.model_export import *
+from detect import *
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -35,6 +36,8 @@ has_model = "true"
 mean_value_array = [123.675, 116.28, 103.53]
 scale_value_array = [0.0171248, 0.017507, 0.0174292]
 
+detect_model = "quantized_model"
+detect_image_file_path = ""
 epochs = 4
 batch_size = 8
 
@@ -283,18 +286,26 @@ def convert():
 
     return render_template('index.html')
 
-@app.route('/detect',methods=["POST","GET"])
-def detect():
+@app.route('/upload_detect_image',methods=["POST","GET"])
+def upload_detect_image():
+    global detect_image_file_path
     if request.method == 'POST':
         detect_image_file = request.files['detect_image_file']
         detect_image_file_path = os.path.join(temporary_path, detect_image_file.filename)
         detect_image_file.save(detect_image_file_path)
         socketio.emit('output', "Upload detect image successful\n") 
-        runCommandAndOutLog(f"cd /model_zoo/{model_name} && /usr/bin/python3 detect.py    --source --outdir {temporary_path}")
-        socketio.emit('output', "train completed\n") 
         return '', 200
 
-
+@app.route('/detect',methods=["POST","GET"])
+def detect():
+    detect_model_path = find_file_ending_with(f"{temporary_path}/model_output", f"{detect_model}.onnx")
+    layout = "NHWC" if detect_model == "quantized_model" else "NCHW"
+    if model_name == 'resnet18_track_detection':
+        model_detect = Restnet18ModelDetect(detect_image_file_path, detect_model_path, f"{temporary_path}/detect_result.jpg", layout)
+    elif model_name == 'yolov5s-2.0':
+        model_detect = Yolov5sv2ModelDetect(detect_image_file_path, detect_model_path, f"{temporary_path}/detect_result.jpg", layout)
+    model_detect.detect()
+    return send_from_directory(temporary_path, "detect_result.jpg")
 
 @app.route('/download_all_model')
 def download_all_model():
@@ -309,7 +320,7 @@ def download_bin_model():
 
 @app.route('/update_parameter', methods=['POST'])
 def update_parameter():
-    global dimension_type, model_name, width, height, model_type, input_type_rt, input_layout_rt, input_type_train, input_layout_train, norm_type, batch_size, epochs, has_model
+    global dimension_type, model_name, width, height, model_type, input_type_rt, input_layout_rt, input_type_train, input_layout_train, norm_type, batch_size, epochs, has_model, detect_model
     data = request.get_json()
     model_name = data.get("model_name")
     dimension_type = data.get("dimensionType")
@@ -328,6 +339,7 @@ def update_parameter():
 
     batch_size = data.get("batch_size")
     epochs = data.get("epochs")
+    detect_model = data.get("detect_model")
 
     if dimension_type == "custom":
         width = data.get("customWidth")

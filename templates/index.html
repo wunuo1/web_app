@@ -160,7 +160,30 @@
 	<br>
 	<button onclick="performTask('/convert')">一键转换</button>
 	<br>
-	
+	<select id="detect_model" name="detect_model" onchange="updateParameter()">
+		<option value="quantized_model">使用量化后的int模型</option>
+		<option value="original_float_model">使用原生的float模型</option>
+	</select>
+	<br>
+	<!-- <button id = "detect" onclick="performTask('/detect')">模型检测</button> -->
+	<button id="detect">模型检测</button>
+    <!-- 使用 JavaScript 设置图片的 src，并初始状态不显示 -->
+    <img id="imageToShow" style="display: none;" alt="Image to Show">
+    <script>
+        // JavaScript 代码
+        document.getElementById("detect").addEventListener("click", function() {
+            // 在按钮点击时，显示图片
+			var imageElement = document.getElementById("imageToShow");
+    
+    // 添加随机参数，以强制浏览器重新加载图片
+			var timestamp = new Date().getTime();
+			var imageUrl = "{{ url_for('detect') }}?timestamp=" + timestamp;
+
+			imageElement.src = imageUrl;
+			imageElement.style.display = "block";
+        });
+    </script>
+	<br>
 	<form id="uploadDetectImage" enctype='multipart/form-data' method='POST'>
 		<label for="profile_pic">上传一张图片查看推理效果</label>
 		<input type="file" id="detect_image_file" name="detect_image_file" accept="image/*" onchange="uploadDetectImage()"/>
@@ -233,7 +256,7 @@
 		var formData = new FormData(form);
 
 		var xhr = new XMLHttpRequest();
-		xhr.open('POST', '/detect', true);
+		xhr.open('POST', '/upload_detect_image', true);
 
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
@@ -353,6 +376,7 @@
 			var epochs = document.getElementById('epochs').value;
 			var batch_size = document.getElementById('batch_size').value
 
+			var detect_model = document.getElementById('detect_model').value
 			var xhr = new XMLHttpRequest();
 			xhr.open('POST', '/update_parameter', true);
 			xhr.setRequestHeader('Content-Type', 'application/json');
@@ -375,7 +399,8 @@
 				scale_value: scale_value,
 				
 				epochs: epochs,
-				batch_size: batch_size
+				batch_size: batch_size,
+				detect_model: detect_model
 			};
 			var jsonData = JSON.stringify(data);
 			xhr.onreadystatechange = function() {

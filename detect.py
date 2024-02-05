@@ -30,7 +30,7 @@ import yaml
 import cv2
 
 from easydict import EasyDict
-from web_app.data.data_transforms import *
+from data.data_transforms import *
 
 class ModelDetect(object):
     def __init__(self, image_source_path ,onnx_model_path, image_save_path, layout):
