@@ -38,8 +38,6 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--width', type=int, default=224, help='Image width')
     parser.add_argument('--height', type=int, default=224, help='Image height')
     parser.add_argument('--format', type=str, default="rgb", help='Image format')
-    parser.add_argument('--mean', nargs=3, type=float, default=(0.485, 0.456, 0.406), help='Mean')
-    parser.add_argument('--stddev', nargs=3, type=float, default=(0.229, 0.224, 0.225) ,help='Stddev')
     args = parser.parse_args()
     return args
 
@@ -57,7 +55,7 @@ def main(args):
             break
         img, label = dataset[i]
         img.squeeze().numpy().tofile(args.outdir + '/' + str(i) + "_." + args.format)
-        print(args.outdir + str(i) + "_." + args.format,flush=True)
+        print(args.outdir + '/'+ str(i) + "_." + args.format,flush=True)
       
 
 if __name__ == '__main__':

@@ -30,6 +30,7 @@ import yaml
 import cv2
 
 from easydict import EasyDict
+sys.path.append("/web_app")
 from data.data_transforms import *
 
 class ModelDetect(object):
@@ -67,7 +68,7 @@ class ModelDetect(object):
         transformed_image = self.image_transform(self.image)
         image_numpy = transformed_image.numpy()
         if self.layout == "NHWC":
-            image_numpy = image_numpy.transpose((2, 1, 0))
+            image_numpy = image_numpy.transpose((1, 2, 0))
         image_numpy = np.expand_dims(image_numpy, axis=0)
 
         self.sess.set_dim_param(0, 0, '?')
@@ -116,7 +117,7 @@ class Yolov5sv2ModelDetect(ModelDetect):
         super().__init__(image_source_path, onnx_model_path, image_save_path, layout)
     def get_transforms(self):
         image_transform = transforms.Compose([
-            transforms.Resize((self.model_height, self.model_width)),
+            PadResizeTransformer(self.model_height, self.model_width),
             RGB2NV12Transform(),
             NV12ToYUV444Transformer((self.model_height, self.model_width),'HWC'),
             transforms.ToTensor(),
@@ -288,13 +289,15 @@ class Yolov5sv2ModelDetect(ModelDetect):
                 score = 1
 
             bbox_color = colors[class_index]
+            # scale = self.image_width / self.model_width if self.image_width > self.image_height else self.image_height / self.model_height
+            scale = 1
             imagedraw.rectangle([coor[0], coor[1], coor[2], coor[3]], outline=bbox_color, width=2)
 
             classes_name = class_index
             bbox_mess = '%s: %.2f' % (classes_name, score)
 
             font = ImageFont.truetype('LiberationSans-Italic.ttf', size=30)
-            text = str(classes_name)
+            text = bbox_mess
 
             text_width, text_height = imagedraw.textsize(text, font=font)
             text_x = coor[0]

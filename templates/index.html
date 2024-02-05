@@ -160,6 +160,10 @@
 	<br>
 	<button onclick="performTask('/convert')">一键转换</button>
 	<br>
+	<form id="uploadDetectImage" enctype='multipart/form-data' method='POST'>
+		<label for="profile_pic">上传一张图片查看推理效果</label>
+		<input type="file" id="detect_image_file" name="detect_image_file" accept="image/*" onchange="uploadDetectImage()"/>
+	</form>
 	<select id="detect_model" name="detect_model" onchange="updateParameter()">
 		<option value="quantized_model">使用量化后的int模型</option>
 		<option value="original_float_model">使用原生的float模型</option>
@@ -183,12 +187,6 @@
 			imageElement.style.display = "block";
         });
     </script>
-	<br>
-	<form id="uploadDetectImage" enctype='multipart/form-data' method='POST'>
-		<label for="profile_pic">上传一张图片查看推理效果</label>
-		<input type="file" id="detect_image_file" name="detect_image_file" accept="image/*" onchange="uploadDetectImage()"/>
-		<!-- <input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchange="updateButtonState()" disabled> -->
-	</form>
 	<br>
 	<button onclick="downloadBinModel()">下载bin模型</button>
 	<button onclick="downloadAllModel()">下载所有模型</button>

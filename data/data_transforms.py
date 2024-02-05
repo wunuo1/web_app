@@ -100,14 +100,20 @@ class PadResizeTransformer:
         transform = transforms.Compose([
             transforms.Resize((new_height, new_width)),
         ])
-        resize_transform = transforms.Resize((new_height, new_width))
-        pad_transform = transforms.Pad(padding=(int((self.width - new_width)/2), int((self.height - new_height)/2), int((self.width - new_width)/2), int((self.height - new_height)/2)), fill=127)
-        transform = transforms.Compose([
-            resize_transform,
-            pad_transform
-        ])
-        resized_padded_img = transform(img)
-        return resized_padded_img
+        resized_img = transform(img)
+        # resize_transform = transforms.Resize((new_height, new_width))
+        # pad_transform = transforms.Pad(padding=(int((self.width - new_width)/2), int((self.height - new_height)/2), int((self.width - new_width)/2), int((self.height - new_height)/2)), fill=127)
+        # transform = transforms.Compose([
+        #     resize_transform,
+        #     pad_transform
+        # ])
+        # resized_padded_img = transform(img)
+        pad_image = np.full(shape=[self.height, self.width, 3],
+                    fill_value=127).astype(np.uint8)
+        dw, dh = (self.width - new_width) // 2, (self.height - new_height) // 2
+        pad_image[dh:new_height + dh, dw:new_width + dw, :] = resized_img
+        pad_image = pad_image.astype(np.uint8)
+        return Image.fromarray(pad_image)
 
 class DataTransforms(object):
     def __init__(self, width, height):
