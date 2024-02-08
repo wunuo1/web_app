@@ -106,7 +106,7 @@ class Restnet18ModelDetect(ModelDetect):
         x = 5 if x < 5 else x
         x = self.image_width - 6 if x > self.image_width - 6 else x
         y = 5 if y < 5 else y
-        y = self.image_height - 6 if y > self.image_width - 6 else y
+        y = self.image_height - 6 if y > self.image_height - 6 else y
         for i in range(x - 5, x + 5):
             for j in range(y - 5, y + 5):
                 imagedraw.point((i, j), (255,0,0))
@@ -361,3 +361,10 @@ class Yolov5sv2ModelDetect(ModelDetect):
                 self.draw_bboxs(self.image, nms_bboxes, num_classes)
         else:
             self.image.save(self.image_save_path)
+
+def get_detect_result(model_name, image_source_path, onnx_model_path, image_save_path, layout):
+    if model_name == "resnet18_track_detection":
+        model_detect = Restnet18ModelDetect(image_source_path, onnx_model_path, image_save_path, layout)
+    elif model_name == "yolov5s-2.0":
+        model_detect = Yolov5sv2ModelDetect(image_source_path, onnx_model_path, image_save_path, layout)
+    model_detect.detect()

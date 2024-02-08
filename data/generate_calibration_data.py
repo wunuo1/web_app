@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from data_transforms import *
+from .data_transforms import *
 
 import argparse
 import os
@@ -21,43 +21,21 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-def calibration_transforms(args):
+
+def generate_calibration_data(dataset_file_path, outdir, model, width, height, image_format):
     
-    if args.model == "resnet18_track_detection":
-        data_transforms = Resnet18DataTransforms(args.width,args.height,args.mean,args.stddev,args.format)
-    elif args.model == "yolov5s-2.0":
-        data_transforms = Yolov5sv2DataTransforms(args.width,args.height,args.format)
-    return data_transforms.calibration_transforms()
-
-
-def get_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Generate calibration dataset for conversion')
-    parser.add_argument('--dataset', type=str, required=True, help='Root directory of dataset')
-    parser.add_argument('--outdir', type=str, default='/root/tool_chain_temporary/calibration_data', help='Output directory')
-    parser.add_argument('--model', type=str, required=True, help='Model type')
-    parser.add_argument('--width', type=int, default=224, help='Image width')
-    parser.add_argument('--height', type=int, default=224, help='Image height')
-    parser.add_argument('--format', type=str, default="rgb", help='Image format')
-    args = parser.parse_args()
-    return args
-
-def main(args):
-
-    transforms = calibration_transforms(args)
-
-    dataset = datasets.ImageFolder(args.dataset, transform=transforms)
-
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
+    if model == "resnet18_track_detection":
+        cal_transforms = Resnet18DataTransforms(width, height, image_format)
+    elif model == "yolov5s-2.0":
+        cal_transforms = Yolov5sv2DataTransforms(width, height, image_format)
+    dataset = datasets.ImageFolder(dataset_file_path, transform=cal_transforms.calibration_transforms())
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
     # 保存校准数据
     for i in range(len(dataset)):
         if i >= 100:
             break
         img, label = dataset[i]
-        img.squeeze().numpy().tofile(args.outdir + '/' + str(i) + "_." + args.format)
-        print(args.outdir + '/'+ str(i) + "_." + args.format,flush=True)
+        img.squeeze().numpy().tofile(outdir + '/' + str(i) + "_." + image_format)
+        # print(outdir + '/'+ str(i) + "_." + image_format, flush=True)
       
-
-if __name__ == '__main__':
-  args = get_args()
-  main(args)

@@ -101,13 +101,6 @@ class PadResizeTransformer:
             transforms.Resize((new_height, new_width)),
         ])
         resized_img = transform(img)
-        # resize_transform = transforms.Resize((new_height, new_width))
-        # pad_transform = transforms.Pad(padding=(int((self.width - new_width)/2), int((self.height - new_height)/2), int((self.width - new_width)/2), int((self.height - new_height)/2)), fill=127)
-        # transform = transforms.Compose([
-        #     resize_transform,
-        #     pad_transform
-        # ])
-        # resized_padded_img = transform(img)
         pad_image = np.full(shape=[self.height, self.width, 3],
                     fill_value=127).astype(np.uint8)
         dw, dh = (self.width - new_width) // 2, (self.height - new_height) // 2
@@ -116,20 +109,17 @@ class PadResizeTransformer:
         return Image.fromarray(pad_image)
 
 class DataTransforms(object):
-    def __init__(self, width, height):
-       self.width = width
-       self.height = height
-
+    def __init__(self, width, height, format):
+        self.width = width
+        self.height = height
+        self.format = format
     def calibration_transforms(self):
        pass
 
 class Resnet18DataTransforms(DataTransforms):
-    def __init__(self, width, height, mean, stddev, format):
-       super(Resnet18DataTransforms, self).__init__(width, height)
-       self.mean = mean
-       self.stddev = stddev
-       self.format = format
-    
+    def __init__(self, width, height, format):
+       super(Resnet18DataTransforms, self).__init__(width, height, format)
+
     def calibration_transforms(self):
         transform = transforms.Compose(
             [FormatTransform(self.format),
@@ -141,8 +131,7 @@ class Resnet18DataTransforms(DataTransforms):
 
 class Yolov5sv2DataTransforms(DataTransforms):
     def __init__(self, width, height, format):
-       super(Yolov5sv2DataTransforms, self).__init__(width, height)
-       self.format = format
+       super(Yolov5sv2DataTransforms, self).__init__(width, height, format)
     
     def calibration_transforms(self):
         transform = transforms.Compose(

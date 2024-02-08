@@ -7,58 +7,22 @@ import sys
 import glob
 import yaml
 from datetime import datetime
-from utils.model_train import *
-from utils.model_export import *
-from detect import *
+from utils.model_train import get_train_command
+from utils.model_export import get_export_command
+from utils.model_detect import get_detect_result
+from data.generate_calibration_data import generate_calibration_data
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 app.secret_key = 'random string'
 
-onnx_file_path = ""
-prototxt_file_path = ""
-caffemodel_file_path = ""
-image_folder_path = ""
-config_file_path = ""
-model_name = "resnet18_track_detection"
-model_type = "onnx"
-dimension_type = "224x224"
-width = 224
-height = 224
 
-input_type_rt = "nv12"
-input_layout_rt = "None"
-input_type_train = "rgb"
-input_layout_train = "NCHW"
-norm_type = "data_mean_and_scale"
-has_model = "true"
-# has_dataset = "false"
-mean_value_array = [123.675, 116.28, 103.53]
-scale_value_array = [0.0171248, 0.017507, 0.0174292]
-
-detect_model = "quantized_model"
-detect_image_file_path = ""
-epochs = 4
-batch_size = 8
-
-dataset_file_path = ""
-data_path = "/root/tool_chain_temporary" #Path for storing uploaded and generated files
-temporary_path = ""
-search_path='/open_explorer/horizon_xj3_open_explorer_v2.6.2b-py38_20230606/ddk/samples/ai_toolchain/horizon_model_convert_sample'
-preprocess_py = '/open_explorer/horizon_xj3_open_explorer_v2.6.2b-py38_20230606/ddk/samples/ai_toolchain/horizon_model_convert_sample/data_preprocess.py'
 
 def find_file_ending_with(directory_path, endswith):
     for filename in os.listdir(directory_path):
         if filename.endswith(endswith):
             return os.path.join(directory_path, filename)
     return None
-
-# def find_file_in_folder(model_folder_name):
-#     path = glob.glob(search_path + '/*/*' + model_name + '*/mapper/02_preprocess.sh')
-#     if len(path) != 0:
-#         return path[0]
-#     else:
-#         return None
 
 def parse_mean_scale(mean_value_text,scale_value_text):
     mean_values = mean_value_text.split()
@@ -145,7 +109,7 @@ def upload():
     global image_folder_path, onnx_file_path, prototxt_file_path,caffemodel_file_path, dataset_file_path, temporary_path
     temporary_path = data_path
     temporary_path = create_unique_folder(temporary_path)
-
+    socketio.emit('clear_output')
     if request.method == 'POST':
         try:
             if has_model == "true":
@@ -198,7 +162,6 @@ def upload():
     return render_template('index.html')
 
 def runCommandAndOutLog(command):
-    # socketio.emit('clear_output')
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,text =True)
 
     def output_reader(pipe, emit_function):
@@ -222,16 +185,9 @@ def runCommandAndOutLog(command):
 @app.route('/train', methods=['POST'])
 def train():
     socketio.emit('output', "start the training\n") 
-    model_train = None
-    if model_name == "resnet18_track_detection":
-        model_train = Restnet18ModelTrain(model_name, dataset_file_path, batch_size, epochs, temporary_path)
-    elif model_name == "yolov5s-2.0":
-        model_train = Yolov5sv2ModelTrain(model_name, dataset_file_path, batch_size, epochs, temporary_path, f'{width} {height}')
-    train_command = model_train.get_train_command()
-
-    # train_command = get_train_command(model_name = model_name, dataset = dataset_file_path, batch_size = batch_size, epochs = epochs, outdir = temporary_path, width = width, height = height)
-    # print(train_command)
-
+    train_command = get_train_command(model_name = model_name, dataset = dataset_file_path, batch_size = batch_size, epochs = epochs, outdir = temporary_path, width = width, height = height)
+    if train_command == None:
+        socketio.emit('output', "dataset format error\n") 
     #After training, it is necessary to ensure that the pt model is under temporary_path. eg.yolov5
     runCommandAndOutLog(train_command)
     socketio.emit('output', "train completed\n") 
@@ -240,12 +196,7 @@ def train():
 @app.route('/export', methods=['POST'])
 def export():
     pt_model_path = find_file_ending_with(temporary_path, ".pt")
-    model_export = None
-    if model_name == "resnet18_track_detection":
-        model_export = Restnet18ModelExport(model_name, pt_model_path, temporary_path)
-    elif model_name == "yolov5s-2.0":
-        model_export = Yolov5sv2ModelExport(model_name, pt_model_path, temporary_path, f'{width} {height}', 1 )
-    export_command = model_export.get_export_command()
+    export_command = get_export_command(model_name = model_name, pt_model_path = pt_model_path, outdir = temporary_path, width = width, height = height, batch_size = 1)
     runCommandAndOutLog(export_command)
     socketio.emit('output', "export completed\n") 
     return '', 200
@@ -259,25 +210,15 @@ def convert():
         runCommandAndOutLog(f"cd {temporary_path} && hb_mapper checker --model-type onnx --model {onnx_file_path} --march bernoulli2")
         socketio.emit('output', "模型检查完成\n") 
 
-        if has_model == "true":
-            #有模型
-            #preprocess
-            #TODO
-            runCommandAndOutLog(f"/usr/bin/python3 /web_app/data/generate_calibration_data.py  --dataset {image_folder_path} --model {model_name} --width {width} --height {height} --format rgb --outdir {temporary_path}/calibration_data")
-            socketio.emit('output', "校准数据准备完成\n") 
-
-        else:
-            #没有模型，训练的
-            #preprocess
-            runCommandAndOutLog(f"/usr/bin/python3 /web_app/data/generate_calibration_data.py  --dataset {dataset_file_path} --model {model_name} --width {width} --height {height} --format rgb --outdir {temporary_path}/calibration_data")
-            socketio.emit('output', "校准数据准备完成\n") 
+        image_path = image_folder_path if has_model == "true" else dataset_file_path
+        generate_calibration_data(image_path, temporary_path + '/calibration_data', model_name, width, height, input_type_train)
+        socketio.emit('output', "校准数据准备完成\n") 
 
         # build
         ori_config_file_path = find_file_ending_with(f"/model_zoo/{model_name}", "_config.yaml")
         config_file_path = os.path.join(temporary_path, os.path.basename(ori_config_file_path))
         runCommandAndOutLog(f"cp {ori_config_file_path} {temporary_path}")
         update_config_file()
-
         runCommandAndOutLog(f"cd {temporary_path} && hb_mapper makertbin --config {config_file_path} --model-type {model_type} ")
         socketio.emit('output', "模型转换完成\n") 
 
@@ -300,11 +241,8 @@ def upload_detect_image():
 def detect():
     detect_model_path = find_file_ending_with(f"{temporary_path}/model_output", f"{detect_model}.onnx")
     layout = "NHWC" if detect_model == "quantized_model" else "NCHW"
-    if model_name == 'resnet18_track_detection':
-        model_detect = Restnet18ModelDetect(detect_image_file_path, detect_model_path, f"{temporary_path}/detect_result.jpg", layout)
-    elif model_name == 'yolov5s-2.0':
-        model_detect = Yolov5sv2ModelDetect(detect_image_file_path, detect_model_path, f"{temporary_path}/detect_result.jpg", layout)
-    model_detect.detect()
+    get_detect_result(model_name, detect_image_file_path, detect_model_path, f"{temporary_path}/detect_result.jpg", layout)
+
     return send_from_directory(temporary_path, "detect_result.jpg")
 
 @app.route('/download_all_model')
@@ -342,8 +280,8 @@ def update_parameter():
     detect_model = data.get("detect_model")
 
     if dimension_type == "custom":
-        width = data.get("customWidth")
-        height = data.get("customHeight")
+        width = int(data.get("customWidth"))
+        height = int(data.get("customHeight"))
     elif dimension_type == "672x672":
         width = 672
         height = 672
@@ -356,8 +294,40 @@ def update_parameter():
     # print(data)
     return '', 200
 
+def loda_default_parameter():
+    global dimension_type, model_name, width, height, model_type, input_type_rt, input_layout_rt, input_type_train, input_layout_train, norm_type, batch_size, epochs, has_model, detect_model, onnx_file_path, prototxt_file_path, caffemodel_file_path, image_folder_path, config_file_path, mean_value_array, scale_value_array, detect_image_file_path, dataset_file_path, temporary_path, data_path
+    with open('./config/config.yaml', 'r') as file:
+        config = yaml.safe_load(file)
+        onnx_file_path = config["onnx_file_path"]
+        prototxt_file_path = config["prototxt_file_path"]
+        caffemodel_file_path = config["caffemodel_file_path"]
+        image_folder_path = config["image_folder_path"]
+        config_file_path = config["config_file_path"]
+        model_name = config["model_name"]
+        model_type = config["model_type"]
+        dimension_type = config["dimension_type"]
+        width = config["width"]
+        height = config["height"]
+
+        input_type_rt = config["input_type_rt"]
+        input_layout_rt = config["input_layout_rt"]
+        input_type_train = config["input_type_train"]
+        input_layout_train = config["input_layout_train"]
+        norm_type = config["norm_type"]
+        has_model = config["has_model"]
+        mean_value_array = config["mean_value_array"]
+        scale_value_array = config["scale_value_array"]
+
+        detect_model = config["detect_model"]
+        detect_image_file_path = config["detect_image_file_path"]
+        epochs = config["epochs"]
+        batch_size = config["batch_size"]
+
+        dataset_file_path = config["dataset_file_path"]
+        data_path = config["data_path"]
+        temporary_path = config["temporary_path"]
 
 if __name__ == '__main__':
-    # app.run(host="0.0.0.0",port=5000,debug=True)
+    loda_default_parameter()
     socketio.run(app,host="0.0.0.0",port=5001, debug=True, allow_unsafe_werkzeug=True)
 

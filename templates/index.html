@@ -88,6 +88,7 @@
 	</div>
 
 	<div id="withModelConfig">
+		<label for="dimensionType">选择模型</label>
 		<select id="model_type" name="model_type" onchange ="updateModelFileSelectState();updateParameter()">
 			<option value="onnx">onnx</option>
 			<option value="caffe">caffe</option>
@@ -194,7 +195,21 @@
     <div id="outputContainer">
         <pre id="output"></pre>
     </div>
-
+	<script>
+		function clean_log(message){
+			var outputContainer = document.getElementById('outputContainer');
+			outputContainer.innerHTML += message + '<br>';
+			
+			// 获取日志行数
+			var logLines = outputContainer.innerHTML.split('<br>').length;
+			
+			// 如果日志行数超过阈值，清空日志
+			var logThreshold = 10; // 设置日志行数阈值
+			if (logLines > logThreshold) {
+				outputContainer.innerHTML = '';
+		}
+    }
+	</script>
 
 	<script>
 		function uploadFile() {
@@ -509,8 +524,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);
+		var logCount = 0;
         socket.on('output', function(data) {
             document.getElementById('output').textContent += data;
+			logCount++;
+			if (logCount > 300) {
+            	document.getElementById('output').textContent = '';
+				logCount = 0;
+        	}
         });
 		socket.on('clear_output', function() {
         document.getElementById('output').textContent = '';
