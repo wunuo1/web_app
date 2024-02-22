@@ -3,237 +3,266 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" type="text/css" href="../static/css/styles.css?v=2.4">
 	<title>Execute Command</title>
-    <style>
-        #outputContainer {
-            width: 800px;
-            height: 300px;
-            overflow-y: scroll;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-		.model-config {
-      		display: none; /* 初始状态设置为隐藏 */
-    	}
-    </style>
 </head>
 <body>
 	<h1>模型量化转换工具</h1>
-	<select id="model_name" name="model_name" onchange="updateDefaultConfig()">
-		<option value="resnet18_track_detection">resnet18_track_detection</option>
-		<option value="yolov5s-2.0">yolov5s-2.0</option>
-		<!-- <option value="01_mobilenet">mobilenetv1</option>
-		<option value="04_mobilenet_onnx">mobilenetv2</option>
-		<option value="googlenet">googlenet</option>
-		<option value="efficientnet_lite0_onnx">efficientnet-lite0</option>
-		<option value="efficientnet_lite1_onnx">efficientnet-lite1</option>
-		<option value="efficientnet_lite2_onnx">efficientnet-lite2</option>
-		<option value="efficientnet_lite3_onnx">efficientnet-lite3</option>
-		<option value="efficientnet_lite4_onnx">efficientnet-lite4</option>
-		<option value="yolov2_darknet19">yolov2_darknet19</option>
-		<option value="yolov3_darknet53">yolov3_darknet53</option>
-		<option value="ssd_mobilenetv1">mobilenetv1_ssd</option>
-		<option value="efficientdetd0">efficientdetd0</option>
-		<option value="centernet_resnet50">centernet_resnet50</option>
-		<option value="fcos_efficientnetb0">fcos_efficientnetb0</option>
-		<option value="unet_mobilenet">unet_mobilenet</option>
-		<option value="deeplabv3plus_efficientnetb0">deeplabv3plus_efficientnetb0</option>
-		<option value="fastscnn_efficientnetb0">fastscnn_efficientnetb0</option> -->
-	</select>
-	<br>
-	<select id="has_model" name="has_model" onchange="trainStateChange();updateParameter();converConfigStateChange()">
-		<option value="true">已有onnx/caffe模型</option>
-		<option value="false">没有onnx/caffe模型</option>
-	</select>
-	<!-- <br>
-	<select id="has_dataset" name="has_dataset" onchange = "updateParameter()">
-		<option value="false">没有数据集</option>
-		<option value="true">已有数据集</option>
-	</select> -->
-	<br>
-	<form>
-		<label for="dimensionType">选择或输入模型尺寸</label>
-		<select id="dimensionType" onchange="handleDimensionTypeChange();updateParameter()" >
-			<option value="224x224">224x224</option>
-			<option value="672x672">672x672</option>
-			<option value="custom">自定义</option>
-		</select>
-		<div id="customDimensions" style="display:none;">
-			<label for="customWidth">宽度：</label>
-			<input type="number" id="customWidth" placeholder="宽度" onchange="updateParameter()">
-			
-			<label for="customHeight">高度：</label>
-			<input type="number" id="customHeight" placeholder="高度" onchange="updateParameter()">
-		</div>
-	</form>
-	<br>
-	<div id="noModelConfig" class="model-config">
-		<button id = "annotation" onclick="redirectToAnotherPage()">数据标注</button>
-		<br>
-		<form id="uploadDataset" enctype='multipart/form-data' method='POST'>
-			<label for="profile_pic">选择要上传的数据集文件</label>
-			<input type="file" id="dataset_file" name="dataset_file" webkitdirectory onchange ="updateDatasetButtonState()"/>
-			<br>
-			<input type="button" id = "upload_dataset_button" value="上传数据集" onclick="uploadDataset();updateTrainButtonState()" onchange="updateDatasetButtonState()" disabled>
-		</form>
-		<label for="epochs">epochs</label>
-		<input type="number" id="epochs" placeholder="epochs" value="4" min="2" onchange="updateParameter()">
-		<br>
-		<label for="batch-size">batch_size</label>
-		<input type="number" id="batch_size" placeholder="batch_size" value="8" onchange="updateParameter()">
-		<br>
-		<button id = "train" onclick="performTask('/train')"  disabled>模型训练</button>
-		<button id = "pt2onnx" onclick="performTask('/export')" disabled >转换为onnx模型</button>
-		<br>
-	</div>
+    <button id="selection-button">1.模型选择</button>
+    <button id="quantization-button" disabled>2.模型量化</button>
+    <button id="inference-button" disabled>3.模型推理</button>
+    <button id = "annotation" onclick="redirectToAnotherPage()">数据标注平台</button>
+    <div id="model-selection">
+        <select id="model_name" name="model_name" onchange="updateDefaultConfig()">
+            <option value="resnet18_track_detection">resnet18_track_detection</option>
+            <option value="yolov5s-2.0">yolov5s-2.0</option>
+            <!-- <option value="01_mobilenet">mobilenetv1</option>
+            <option value="04_mobilenet_onnx">mobilenetv2</option>
+            <option value="googlenet">googlenet</option>
+            <option value="efficientnet_lite0_onnx">efficientnet-lite0</option>
+            <option value="efficientnet_lite1_onnx">efficientnet-lite1</option>
+            <option value="efficientnet_lite2_onnx">efficientnet-lite2</option>
+            <option value="efficientnet_lite3_onnx">efficientnet-lite3</option>
+            <option value="efficientnet_lite4_onnx">efficientnet-lite4</option>
+            <option value="yolov2_darknet19">yolov2_darknet19</option>
+            <option value="yolov3_darknet53">yolov3_darknet53</option>
+            <option value="ssd_mobilenetv1">mobilenetv1_ssd</option>
+            <option value="efficientdetd0">efficientdetd0</option>
+            <option value="centernet_resnet50">centernet_resnet50</option>
+            <option value="fcos_efficientnetb0">fcos_efficientnetb0</option>
+            <option value="unet_mobilenet">unet_mobilenet</option>
+            <option value="deeplabv3plus_efficientnetb0">deeplabv3plus_efficientnetb0</option>
+            <option value="fastscnn_efficientnetb0">fastscnn_efficientnetb0</option> -->
+        </select>
+        <label for="profile_pic">模型类型</label>
+        <br>
+        <select id="has_model" name="has_model" onchange="trainStateChange();updateParameter();converConfigStateChange()">
+            <option value="true">已有onnx/caffe模型</option>
+            <option value="false">没有onnx/caffe模型</option>
+        </select>
+        <label for="profile_pic">是否已有模型</label>
+        <form>
+            <select id="dimensionType" onchange="handleDimensionTypeChange();updateParameter()" >
+                <option value="224x224">224x224</option>
+                <option value="672x672">672x672</option>
+                <option value="custom">自定义</option>
+            </select>
+            <label for="dimensionType">模型尺寸</label>
+            <div id="customDimensions" style="display:none;">
+                <input type="number" id="customWidth" placeholder="宽度" onchange="updateParameter()" value="0">
+                <label for="customWidth">模型宽度</label>
+                <br>
+                <input type="number" id="customHeight" placeholder="高度" onchange="updateParameter()" value="0">
+                <label for="customHeight">模型高度</label>
+            </div>
+        </form>
+        <div id="noModelConfig" class="model-config">
+            <form id="uploadDataset" enctype='multipart/form-data' method='POST'>
+                <input type="file" id="dataset_file" name="dataset_file" webkitdirectory onchange ="updateDatasetButtonState()"/>
+                <label for="profile_pic">选择数据集文件</label>
+                <br>
+                <input type="button" id = "upload_dataset_button" value="上传数据集" onclick="uploadDataset();updateTrainButtonState()" onchange="updateDatasetButtonState()" disabled>
+            </form>
+            <input type="number" id="epochs" placeholder="epochs" value="100" min="2" onchange="updateParameter()">
+            <label for="epochs">epochs</label>
+            <br>
+            <input type="number" id="batch_size" placeholder="batch_size" value="4" onchange="updateParameter()">
+            <label for="batch-size">batch_size（若训练失败，请减小batch_size的值）</label>
+            <br>
+            <button id = "train"  disabled>开始训练模型</button>
+            <button id = "pt2onnx" disabled >转换为onnx模型</button>
+            <br>
+        </div>
 
-	<div id="withModelConfig">
-		<label for="dimensionType">选择模型</label>
-		<select id="model_type" name="model_type" onchange ="updateModelFileSelectState();updateParameter()">
-			<option value="onnx">onnx</option>
-			<option value="caffe">caffe</option>
-		</select>
-		<br>
-		<form id="uploadForm" enctype='multipart/form-data' method='POST'>
-			<label for="profile_pic">选择要上传的onnx文件</label>
-			<input type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange ="updateButtonState()"/>
-			<br>
-			<label for="profile_pic">选择要上传的prototxt文件</label>
-			<input type="file" id="prototxt_file" name="prototxt_file" accept=".prototxt" onchange ="updateButtonState()" disabled/>
-			<br>
-			<label for="profile_pic">选择要上传的caffemodel文件</label>
-			<input type="file" id="caffemodel_file" name="caffemodel_file" accept=".caffemodel" onchange ="updateButtonState()" disabled/>
-			<br>
-			<!-- <label for="profile_pic">选择要上传的配置文件</label>
-			<input type="file" id="config_file" name="config_file" accept=".yaml" onchange ="updateButtonState()"/>
-			<br> -->
-			<label for="profile_pic">选择要上传的校准图片文件</label>
-			<input type="file" id="image_file" name="image_file" webkitdirectory onchange ="updateButtonState()"/>
-			<br>
-			<input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchange="updateButtonState()" disabled>
-		</form>
-	</div>
+        <div id="withModelConfig">
+            <select id="model_type" name="model_type" onchange ="updateModelFileSelectState();updateParameter()">
+                <option value="onnx">onnx</option>
+                <option value="caffe">caffe</option>
+            </select>
+            <label for="dimensionType">模型格式</label>
+            <br>
+            <form id="uploadForm" enctype='multipart/form-data' method='POST'>
+                <div id="withOnnxModel">
+                    <input type="file" id="onnx_file" name="onnx_file" accept=".onnx" onchange ="updateUploadButtonState()"/>
+                    <label for="profile_pic">选择onnx文件</label>
+                </div>
+                <div id="withCaffeModel" style="display:none;">
+                    <input type="file" id="prototxt_file" name="prototxt_file" accept=".prototxt" onchange ="updateUploadButtonState()" />
+                    <label for="profile_pic">选择prototxt文件</label>
+                    <br>
+                    <input type="file" id="caffemodel_file" name="caffemodel_file" accept=".caffemodel" onchange ="updateUploadButtonState()" />
+                    <label for="profile_pic">选择caffemodel文件</label>
+                    <br>
+                </div>
+                <!-- <label for="profile_pic">选择配置文件</label>
+                <input type="file" id="config_file" name="config_file" accept=".yaml" onchange ="updateUploadButtonState()"/>
+                <br> -->
+                <input type="file" id="image_file" name="image_file" webkitdirectory onchange ="updateUploadButtonState()"/>
+                <label for="profile_pic">选择校准图片文件（建议一百张）</label>
+                <br>
+                <input type="button" id = "upload_button" value="上传文件" onclick="uploadFile()" onchange="updateUploadButtonState()" disabled>
+            </form>
+        </div>
+    </div>
 	<br>
 	<!-- 配置参数 -->
-	<label for="profile_pic">网络实际执行时的数据格式</label>
-	<select id="input_type_rt" name="input_type_rt" onchange ="updateParameter()">
-		<option value="nv12">nv12</option>
-		<option value="rgb">rgb</option>
-		<option value="bgr">bgr</option>
-		<option value="yuv444">yuv444</option>
-		<option value="gray">gray</option>
-		<option value="featuremap">featuremap</option>
-	</select>
-	<br>
-	<label for="profile_pic">网络实际执行时输入的数据排布</label>
-	<select id="input_layout_rt" name="input_layout_rt" onchange ="updateParameter()">
-		<option value="NHWC">NHWC</option>
-		<option value="NCHW">NCHW</option>
-		<option value="None">None</option>
-	</select>	
-	<br>
-	<label for="profile_pic">网络训练时输入的数据格式</label>
-	<select id="input_type_train" name="input_type_train" onchange ="updateParameter()">
-		<option value="rgb">rgb</option>
-		<option value="nv12">nv12</option>
-		<option value="bgr">bgr</option>
-		<option value="yuv444">yuv444</option>
-		<option value="gray">gray</option>
-		<option value="featuremap">featuremap</option>
-	</select>
-	<br>
-	<label for="profile_pic">网络训练时输入的数据排布</label>	
-	<select id="input_layout_train" name="input_layout_train" onchange ="updateParameter()">
-		<option value="NCHW">NCHW</option>
-		<option value="NHWC">NHWC</option>
-		<option value="None">None</option>
-	</select>
-	<br>
-	<label for="profile_pic">网络输入的预处理方法</label>
-	<select id="norm_type" name="norm_type" onchange ="updateParameter()">
-		<option value="data_mean_and_scale">data_mean_and_scale</option>
-		<option value="no_preprocess">no_preprocess</option>
-		<option value="data_mean">data_mean</option>
-		<option value="data_scale">data_scale</option>
-	</select>	
-	<input type="text" id="mean_value" placeholder="减去的均值" value="123.675 116.28 103.53" onchange="updateParameter()">
-	<input type="text" id="scale_value" placeholder="缩放的比例" value="0.0171248 0.017507 0.0174292" onchange="updateParameter()">
-	<br>
-	<button onclick="performTask('/convert')">一键转换</button>
-	<br>
-	<form id="uploadDetectImage" enctype='multipart/form-data' method='POST'>
-		<label for="profile_pic">上传一张图片查看推理效果</label>
-		<input type="file" id="detect_image_file" name="detect_image_file" accept="image/*" onchange="uploadDetectImage()"/>
-	</form>
-	<select id="detect_model" name="detect_model" onchange="updateParameter()">
-		<option value="quantized_model">使用量化后的int模型</option>
-		<option value="original_float_model">使用原生的float模型</option>
-	</select>
-	<br>
-	<!-- <button id = "detect" onclick="performTask('/detect')">模型检测</button> -->
-	<button id="detect">模型检测</button>
-    <!-- 使用 JavaScript 设置图片的 src，并初始状态不显示 -->
-    <img id="imageToShow" style="display: none;" alt="Image to Show">
-    <script>
-        // JavaScript 代码
-        document.getElementById("detect").addEventListener("click", function() {
-            // 在按钮点击时，显示图片
-			var imageElement = document.getElementById("imageToShow");
-    
-    // 添加随机参数，以强制浏览器重新加载图片
-			var timestamp = new Date().getTime();
-			var imageUrl = "{{ url_for('detect') }}?timestamp=" + timestamp;
+    <div id="model-quantization" style="display: none;">
+        <label for="profile_pic" id="supplementary_explanation">提供默认参数可直接使用</label>
+        <br>
+        <select id="input_type_rt" name="input_type_rt" onchange ="updateParameter()">
+            <option value="nv12">nv12</option>
+            <option value="rgb">rgb</option>
+            <option value="bgr">bgr</option>
+            <option value="yuv444">yuv444</option>
+            <option value="gray">gray</option>
+            <option value="featuremap">featuremap</option>
+        </select>
+        <label for="profile_pic">网络实际执行时的数据格式</label>
+        <br>
+        <select id="input_layout_rt" name="input_layout_rt" onchange ="updateParameter()">
+            <option value="NHWC">NHWC</option>
+            <option value="NCHW">NCHW</option>
+            <option value="None">None</option>
+        </select>
+        <label for="profile_pic">网络实际执行时输入的数据排布</label>	
+        <br>
+        <select id="input_type_train" name="input_type_train" onchange ="updateParameter()">
+            <option value="rgb">rgb</option>
+            <option value="nv12">nv12</option>
+            <option value="bgr">bgr</option>
+            <option value="yuv444">yuv444</option>
+            <option value="gray">gray</option>
+            <option value="featuremap">featuremap</option>
+        </select>
+        <label for="profile_pic">网络训练时输入的数据格式</label>
+        <br>
+        <select id="input_layout_train" name="input_layout_train" onchange ="updateParameter()">
+            <option value="NCHW">NCHW</option>
+            <option value="NHWC">NHWC</option>
+            <option value="None">None</option>
+        </select>
+        <label for="profile_pic">网络训练时输入的数据排布</label>	
+        <br>
+        <select id="norm_type" name="norm_type" onchange ="updateParameter()">
+            <option value="data_mean_and_scale">data_mean_and_scale</option>
+            <option value="no_preprocess">no_preprocess</option>
+            <option value="data_mean">data_mean</option>
+            <option value="data_scale">data_scale</option>
+        </select>
+        <label for="profile_pic">网络输入的预处理方法</label>	
+        <br>
+        <input type="text" id="mean_value" placeholder="减去的均值" value="123.675 116.28 103.53" onchange="updateParameter()">
+        <label for="profile_pic">预处理减去的均值（多通道不同处理请用空格隔开）</label>
+        <br>
+        <input type="text" id="scale_value" placeholder="缩放的比例" value="0.0171248 0.017507 0.0174292" onchange="updateParameter()">
+        <label for="profile_pic">预处理缩放的比例（多通道不同处理请用空格隔开）</label>
+        <br>
+        <button id="convert_button">一键转换</button>
+    </div>
+    <div id="model-inference" style="display: none;">
+        <form id="uploadDetectImage" enctype='multipart/form-data' method='POST'>
+            <input type="file" id="detect_image_file" name="detect_image_file" accept="image/*" onchange="uploadDetectImage();updateDetectButtonState()"/>
+            <label for="profile_pic">上传一张图片用于模型推理</label>
+        </form>
+        <select id="detect_model" name="detect_model" onchange="updateParameter()">
+            <option value="quantized_model">使用量化后的int模型</option>
+            <option value="original_float_model">使用原生的float模型</option>
+        </select>
+        <label for="profile_pic">推理模型选择</label>
+        <br>
+        <!-- <button id = "detect" onclick="performTask('/detect')">模型检测</button> -->
+        <button id="detect" disabled>模型检测</button>
+        <img id="imageToShow">
+        <script>
+            document.getElementById("detect").addEventListener("click", function() {
+                var imageElement = document.getElementById("imageToShow");
+                imageElement.src = '';
+                var timestamp = new Date().getTime();
+                var imageUrl = "{{ url_for('detect') }}?timestamp=" + timestamp;
+                imageElement.src = imageUrl;
+            });
+        </script>
+        <button id="download_bin" onclick="downloadBinModel()">下载bin模型</button>
+        <button id="download_all" onclick="downloadAllModel()">下载所有模型</button>
+        <button id = "delete-button" onclick="confirmAction()">清除所有缓存文件</button>
+	</div>
 
-			imageElement.src = imageUrl;
-			imageElement.style.display = "block";
-        });
-    </script>
-	<br>
-	<button onclick="downloadBinModel()">下载bin模型</button>
-	<button onclick="downloadAllModel()">下载所有模型</button>
-	
+
+
     <div id="outputContainer">
         <pre id="output"></pre>
     </div>
-	<script>
-		function clean_log(message){
-			var outputContainer = document.getElementById('outputContainer');
-			outputContainer.innerHTML += message + '<br>';
-			
-			// 获取日志行数
-			var logLines = outputContainer.innerHTML.split('<br>').length;
-			
-			// 如果日志行数超过阈值，清空日志
-			var logThreshold = 10; // 设置日志行数阈值
-			if (logLines > logThreshold) {
-				outputContainer.innerHTML = '';
-		}
-    }
-	</script>
+
+    <script>
+        function confirmAction() {
+            var confirmed = confirm("此操作将删除所有上传以及生成的文件，您确定要执行吗？");
+            if (confirmed) {
+                performTask('/delete_cache');
+                alert("删除操作已执行！");
+            } else {
+                alert("删除操作已取消！");
+            }
+        }
+    </script>
+
+    <script>
+        const selectionButton = document.getElementById('selection-button');
+        const quantizationButton = document.getElementById('quantization-button');
+        const inferenceButton = document.getElementById('inference-button');
+
+        const modelSelection = document.getElementById('model-selection');
+        const modelQuantization = document.getElementById('model-quantization');
+        const modelInference = document.getElementById('model-inference');
+
+        selectionButton.addEventListener('click', function() {
+            modelSelection.style.display = 'block';
+            modelQuantization.style.display = 'none';
+            modelInference.style.display = 'none';
+        });
+
+        quantizationButton.addEventListener('click', function() {
+            modelSelection.style.display = 'none';
+            modelQuantization.style.display = 'block';
+            modelInference.style.display = 'none';
+        });
+
+        inferenceButton.addEventListener('click', function() {
+            modelSelection.style.display = 'none';
+            modelQuantization.style.display = 'none';
+            modelInference.style.display = 'block';
+        });
+    </script>
+
+    <script>
+        function updateQuantizationButtonState(){
+            var quantizationButton = document.getElementById('quantization-button');
+			quantizationButton.disabled = false;
+        }
+        function updateInferenceButtonState(){
+            var inferenceButton = document.getElementById('inference-button');
+			inferenceButton.disabled = false;
+        }
+    </script>   
 
 	<script>
 		function uploadFile() {
 		  var form = document.getElementById('uploadForm');
 		  var formData = new FormData(form);
-
 		  var xhr = new XMLHttpRequest();
 		  xhr.open('POST', '/upload', true);
-	
+          xhr.send(formData);
 		  xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
 			  if (xhr.status === 200) {
-				// 处理上传成功的情况
 				var response = JSON.parse(xhr.responseText);
 				document.getElementById('result').innerHTML = 'File uploaded successfully: ' + response.filename;
 			  } else {
-				// 处理上传失败的情况
 				var response = JSON.parse(xhr.responseText);
 				document.getElementById('result').innerHTML = 'Upload failed: ' + response.message;
 			  }
-			}
+            }
 		  };
-	
-		  xhr.send(formData);
+          updateQuantizationButtonState();
 		}
 	</script>
 
@@ -248,11 +277,9 @@
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
 			if (xhr.status === 200) {
-				// 处理上传成功的情况
 				var response = JSON.parse(xhr.responseText);
 				document.getElementById('result').innerHTML = 'File uploaded successfully: ' + response.filename;
 			} else {
-				// 处理上传失败的情况
 				var response = JSON.parse(xhr.responseText);
 				document.getElementById('result').innerHTML = 'Upload failed: ' + response.message;
 			}
@@ -265,27 +292,25 @@
 
 	<script>
 		function uploadDetectImage() {
-		var form = document.getElementById('uploadDetectImage');
-		var formData = new FormData(form);
+            var form = document.getElementById('uploadDetectImage');
+            var formData = new FormData(form);
 
-		var xhr = new XMLHttpRequest();
-		xhr.open('POST', '/upload_detect_image', true);
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload_detect_image', true);
 
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-			if (xhr.status === 200) {
-				// 处理上传成功的情况
-				var response = JSON.parse(xhr.responseText);
-				document.getElementById('result').innerHTML = 'File uploaded successfully: ' + response.filename;
-			} else {
-				// 处理上传失败的情况
-				var response = JSON.parse(xhr.responseText);
-				document.getElementById('result').innerHTML = 'Upload failed: ' + response.message;
-			}
-			}
-		};
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    document.getElementById('result').innerHTML = 'File uploaded successfully: ' + response.filename;
+                } else {
+                    var response = JSON.parse(xhr.responseText);
+                    document.getElementById('result').innerHTML = 'Upload failed: ' + response.message;
+                }
+                }
+            };
 
-		xhr.send(formData);
+            xhr.send(formData);
 		}
 	</script>
 
@@ -319,11 +344,44 @@
 	<script>
 		function updateTrainButtonState(){
 			var train = document.getElementById('train');
-			var pt2onnx = document.getElementById('pt2onnx');
 			train.disabled = false;
-			pt2onnx.disabled = false;
 		}
 	</script>
+
+    <script>
+        var train = document.getElementById('train');
+        var pt2onnx = document.getElementById('pt2onnx');
+        train.addEventListener('click', function() {
+            fetch('/train')
+                .then(function(response) {
+                    pt2onnx.disabled = false;
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                });
+        });
+
+        pt2onnx.addEventListener('click', function() {
+            fetch('/export')
+                .then(function(response) {
+                    updateQuantizationButtonState();
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                });
+        });
+
+        var convert_button = document.getElementById('convert_button');
+        convert_button.addEventListener('click', function() {
+            fetch('/convert')
+                .then(function(response) {
+                    updateInferenceButtonState();
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                });
+        });
+    </script>
 
 	<script>
 		function converConfigStateChange(){
@@ -349,14 +407,6 @@
 		}
 	</script>
 
-    {% with messages = get_flashed_messages() %}
-         {% if messages %}
-               {% for message in messages %}
-                    <p>{{ message }}</p>
-               {% endfor %}
-         {% endif %}
-    {% endwith %}
-	<p>{{ check_log }}</p>
 	
 	<script>
         function updateDatasetButtonState() {
@@ -381,7 +431,6 @@
 			var norm_type = document.getElementById('norm_type').value;
 
 			var has_model = document.getElementById('has_model').value;
-			// var has_dataset = document.getElementById('has_dataset').value;
 
 			var mean_value = document.getElementById('mean_value').value;
 			var scale_value = document.getElementById('scale_value').value;
@@ -406,7 +455,6 @@
 				input_layout_train: input_layout_train,
 				norm_type: norm_type,
 				has_model: has_model,
-				// has_dataset: has_dataset,
 
 				mean_value: mean_value,
 				scale_value: scale_value,
@@ -445,17 +493,14 @@
 	<script>
         function updateModelFileSelectState() {
 			var selectedValue = document.getElementById("model_type").value;
-			var onnx_file_input = document.getElementById('onnx_file');
-			var prototxt_file_input = document.getElementById('prototxt_file');
-			var caffemodel_file_input = document.getElementById('caffemodel_file');
+			var with_onnx_model = document.getElementById('withOnnxModel');
+			var with_caffe_model = document.getElementById('withCaffeModel');
 			if(selectedValue == "onnx"){
-				onnx_file_input.disabled = false;
-				prototxt_file_input.disabled = true;
-				caffemodel_file_input.disabled = true;
+				with_onnx_model.style.display = "block";
+				with_caffe_model.style.display = "none";
 			} else {
-				prototxt_file_input.disabled = false;
-				caffemodel_file_input.disabled = false;
-				onnx_file_input.disabled = true;
+				with_onnx_model.style.display = "none";
+				with_caffe_model.style.display = "block";
 			}
         }
     </script>
@@ -464,8 +509,7 @@
 		function handleDimensionTypeChange() {
 			var dimensionType = document.getElementById('dimensionType').value;
 			var customDimensionsDiv = document.getElementById('customDimensions');
-		
-			// 如果用户选择了 "自定义"，显示自定义输入框，否则隐藏
+	
 			if (dimensionType == 'custom') {
 				customDimensionsDiv.style.display = 'block';
 			} else {
@@ -476,7 +520,6 @@
 
     <script>
         function performTask(route) {
-            // 使用JavaScript的Fetch API进行异步请求
             fetch(route, {
                 method: 'POST',
             })
@@ -486,37 +529,39 @@
     </script>
 
 	<script>
-        function updateButtonState() {
+        function updateUploadButtonState() {
 			var onnx_file_input = document.getElementById('onnx_file');
 			var prototxt_file_input = document.getElementById('prototxt_file');
 			var caffemodel_file_input = document.getElementById('caffemodel_file');
-			// var config_file_input = document.getElementById('config_file');
 			var image_file_input = document.getElementById('image_file');
 
 			var uploadButton = document.getElementById('upload_button');
 
-            // 如果文件输入框有选择文件，则启用按钮；否则禁用按钮
-
             uploadButton.disabled = !(((onnx_file_input.files.length || (prototxt_file_input && caffemodel_file_input)) && image_file_input.files.length));
-			// uploadButton.disabled = !model_file_input.files.length
         }
     </script>
 
     <script>
+        function updateDetectButtonState() {
+            var detect_image_file_input = document.getElementById('detect_image_file');
+            var detect_button = document.getElementById('detect');
+            detect_button.disabled = !detect_image_file_input.files.length;
+        }
+    </script>
+
+
+    <script>
         function downloadBinModel() {
-            // 向 Flask 路由发送 GET 请求以触发文件下载
             window.location.href = '/download_bin_model';
         }
     </script>
     <script>
         function downloadAllModel() {
-            // 向 Flask 路由发送 GET 请求以触发文件下载
             window.location.href = '/download_all_model';
         }
     </script>
 	<script>
 		function redirectToAnotherPage() {
-			// 在这里设置跳转的目标页面的 URL
 			window.open("http://localhost:8080", '_blank');
 		}
 	</script>
@@ -528,7 +573,7 @@
         socket.on('output', function(data) {
             document.getElementById('output').textContent += data;
 			logCount++;
-			if (logCount > 300) {
+			if (logCount > 400) {
             	document.getElementById('output').textContent = '';
 				logCount = 0;
         	}

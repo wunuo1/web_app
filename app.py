@@ -159,7 +159,8 @@ def upload():
             socketio.emit('output', "Upload successful\n") 
         except Exception as r:
             socketio.emit('output', str(r)) 
-    return render_template('index.html')
+    # return render_template('index.html')
+    return '', 200
 
 def runCommandAndOutLog(command):
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,text =True)
@@ -182,7 +183,7 @@ def runCommandAndOutLog(command):
     stderr_thread.join()
 
 
-@app.route('/train', methods=['POST'])
+@app.route('/train', methods=['POST','GET'])
 def train():
     socketio.emit('output', "start the training\n") 
     train_command = get_train_command(model_name = model_name, dataset = dataset_file_path, batch_size = batch_size, epochs = epochs, outdir = temporary_path, width = width, height = height)
@@ -190,10 +191,10 @@ def train():
         socketio.emit('output', "dataset format error\n") 
     #After training, it is necessary to ensure that the pt model is under temporary_path. eg.yolov5
     runCommandAndOutLog(train_command)
-    socketio.emit('output', "train completed\n") 
+    # socketio.emit('output', "train completed\n") 
     return '', 200
 
-@app.route('/export', methods=['POST'])
+@app.route('/export', methods=['POST','GET'])
 def export():
     pt_model_path = find_file_ending_with(temporary_path, ".pt")
     export_command = get_export_command(model_name = model_name, pt_model_path = pt_model_path, outdir = temporary_path, width = width, height = height, batch_size = 1)
@@ -201,7 +202,7 @@ def export():
     socketio.emit('output', "export completed\n") 
     return '', 200
 
-@app.route('/convert', methods=['POST'])
+@app.route('/convert', methods=['POST','GET'])
 def convert():
     global config_file_path, onnx_file_path
     try:
@@ -256,6 +257,11 @@ def download_bin_model():
         if filename.endswith(".bin"):
             return send_from_directory(f"{temporary_path}/model_output",filename, as_attachment=True)
 
+@app.route('/delete_cache', methods=['POST','GET'])
+def delete_cache():
+    runCommandAndOutLog("rm -r /root/tool_chain_temporary/*")
+    return '', 200
+
 @app.route('/update_parameter', methods=['POST'])
 def update_parameter():
     global dimension_type, model_name, width, height, model_type, input_type_rt, input_layout_rt, input_type_train, input_layout_train, norm_type, batch_size, epochs, has_model, detect_model
@@ -296,7 +302,9 @@ def update_parameter():
 
 def loda_default_parameter():
     global dimension_type, model_name, width, height, model_type, input_type_rt, input_layout_rt, input_type_train, input_layout_train, norm_type, batch_size, epochs, has_model, detect_model, onnx_file_path, prototxt_file_path, caffemodel_file_path, image_folder_path, config_file_path, mean_value_array, scale_value_array, detect_image_file_path, dataset_file_path, temporary_path, data_path
-    with open('./config/config.yaml', 'r') as file:
+    current_dir = os.path.dirname(__file__)
+    absolute_file_path = os.path.join(current_dir, './config/config.yaml')
+    with open(absolute_file_path, 'r') as file:
         config = yaml.safe_load(file)
         onnx_file_path = config["onnx_file_path"]
         prototxt_file_path = config["prototxt_file_path"]

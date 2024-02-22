@@ -1,0 +1,417 @@
+/* 标题 */
+h1 {
+    position: absolute;
+    top: 0%;
+    width: 30%;
+    height: 3%;
+    color: black;
+}
+
+/* 数据标注平台 */
+#annotation{
+    background-color: white;
+    color: #000000;
+    width: 150px;
+    height: 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    position: absolute; 
+    top: 40px;
+    right: 0%;
+    background-image: url('../image/jump.jpg');
+    background-position: right;
+    background-repeat: no-repeat;
+    background-size: 14%;
+    background-position-x: 95%;
+    background-position-y: 50%;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+
+/* 不同阶段按钮 */
+#selection-button{
+    background-color: rgb(90, 2, 243);
+    color: white;
+    width: 33.3%; 
+    height: 55px; 
+    border: none;
+    cursor: pointer;
+    position: absolute; 
+    top: 65px;
+    margin-right: 50px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+#quantization-button{
+    background-color: rgb(90, 2, 243);
+    color: white;
+    width: 33.3%; 
+    height: 55px; 
+    /* padding: 20px 40px; */
+    border: none;
+    /* border-radius: 5px; */
+    cursor: pointer;
+    position: absolute;
+    top: 65px;
+    left: 33.3%;
+    margin-right: 50px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 18px;
+}
+#quantization-button:disabled{
+    background-color: rgb(0, 0, 0);
+    cursor: not-allowed;
+}
+#inference-button{
+    background-color: rgb(90, 2, 243);
+    color: white;
+    /* padding: 20px 40px; */
+    width: 33.3%; 
+    height: 55px; 
+    border: none;
+    /* border-radius: 5px; */
+    cursor: pointer;
+    position: absolute;
+    top: 65px;
+    left: 66.6%;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 18px;
+}
+#inference-button:disabled{
+    background-color: rgb(0, 0, 0);
+    cursor: not-allowed; 
+}
+
+/* 不同阶段的内容 */
+#model-selection{
+    position: absolute;
+    top: 130px;
+    width: 50vw;
+    height: 30vh;
+}
+#model-quantization{
+    position: absolute;
+    top: 130px;
+    width: 50vw;
+    height: 30vh;
+}
+#model-inference{
+    position: absolute;
+    top: 130px;
+    width: 50vw;
+    height: 30vh;
+}
+
+/* 终端输出log显示框 */
+#outputContainer {
+    position: absolute;
+    right: 0%;
+    top: 120px;
+    width: 45vw; 
+    height: 82vh; 
+    /* left: 0%;
+    bottom: 0%;
+    width: 100%; 
+    height: 30%;  */
+    /* transform: translate(-50%, -50%); */
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: black;
+    color: green;
+}
+
+/* 参数选择框 */
+select {
+    width: 250px;
+    height: 40px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+/* 文件选择框 */
+input[type="file"]::file-selector-button {
+    width: 100px;
+    height: 30px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    border-radius: 5px;
+    margin-bottom: 20px
+}
+input[type="file"]{
+    width: 250px;
+    height: 30px;
+    margin-bottom: 15px
+}
+
+/* 上传文件按钮 */
+#upload_button{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 50px;
+}
+#upload_button:disabled{
+    background-color: #b2b1f4;
+    cursor: not-allowed;
+}
+
+/* 补充说明 */
+#supplementary_explanation {
+    color: rgb(255, 34, 0);
+    padding: 15px 5px;
+    border: none;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+/* 没有模型关联选项 */
+.model-config {
+      display: none; 
+}
+
+/* 选项说明 */
+label{
+    color: rgb(11, 10, 10);
+    padding: 15px 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 15px;   
+}
+
+/* 上传数据集按钮 */
+#upload_dataset_button{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+#upload_dataset_button:disabled{
+    background-color: #b2b1f4;
+    cursor: not-allowed;
+}
+
+/* 一键转换按钮 */
+#convert_button{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 50px;
+}
+
+/* 模型检测按钮 */
+#detect{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+#detect:disabled{
+    background-color: #b2b1f4;
+    cursor: not-allowed;
+}
+
+/* bin模型下载按钮 */
+#download_bin{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+/* 所有模型下载按钮 */
+#download_all{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+/* 删除按钮 */
+#delete-button{
+    background-color: rgb(243, 2, 2);
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* 减去均值框 */
+#mean_value{
+    width: 250px;
+    height: 20px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    /* border-radius: 5px; */
+    margin-bottom: 10px;
+    /* font-weight: bold; */
+    font-size: 13px;
+}
+#mean_value:disabled{
+    color: #b2b1f4;
+    cursor: not-allowed;
+}
+
+/* 缩放值框 */
+#scale_value{
+    width: 250px;
+    height: 20px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    /* border-radius: 5px; */
+    margin-bottom: 10px;
+    /* font-weight: bold; */
+    font-size: 13px;
+}
+#scale_value:disabled{
+    color: #b2b1f4;
+    cursor: not-allowed;
+}
+
+/* epochs框 */
+#epochs{
+    width: 150px;
+    height: 20px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    /* border-radius: 5px; */
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 5px;
+}
+
+/* batch_size框 */
+#batch_size{
+    width: 150px;
+    height: 20px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    /* border-radius: 5px; */
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
+/* 训练按钮 */
+#train{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+#train:disabled {
+    background-color: #9c9bea;
+    color: white;
+    cursor: not-allowed;
+}
+
+/* 转换为onnx按钮 */
+#pt2onnx{
+    background-color: #5553db;
+    border-color: #006bdd;
+    color: white;
+    padding: 20px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+#pt2onnx:disabled {
+    background-color: #9c9bea;
+    color: white;
+    cursor: not-allowed;
+}
+
+/* 自定义宽度 */
+#customWidth{
+    width: 150px;
+    height: 20px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    /* border-radius: 5px; */
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+/* 自定义高度 */
+#customHeight{
+    width: 150px;
+    height: 20px;
+    font-weight: 500;
+    color: #5553db;
+    background-color: #ffffff;
+    border-color: #5553db;
+    /* border-radius: 5px; */
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 20px;
+}
+
+/* 推理效果展示 */
+#imageToShow{
+    position: absolute;
+    left: 0%;
+    top: 170px;
+    width: 100%; 
+    height: 180%; 
+}
